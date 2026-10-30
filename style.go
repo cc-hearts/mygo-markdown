@@ -309,6 +309,9 @@ type styleSig struct {
 // leafStyled is a leaf's path of theme nodes and its block style: the
 // nodes of its containers, the block's own, and the style of each.
 type leafStyled struct {
+	// id tells this path and style apart from another leaf's, for the
+	// views that show them.
+	id    uint64
 	node  *theme.Node
 	style *theme.Computed
 	// conts are the nodes after each of the leaf's containers, contStyle
@@ -473,7 +476,8 @@ func (e *Editor) styleID(l *leaf, rev bool) uint32 {
 
 // buildStyled makes a leaf's path of nodes and computes its block style.
 func (e *Editor) buildStyled(l *leaf) *leafStyled {
-	s := &leafStyled{}
+	e.nextStyleID++
+	s := &leafStyled{id: e.nextStyleID}
 	n := e.res.Root()
 	if l.kind == kPara && l.table != nil {
 		t := l.table
@@ -619,6 +623,20 @@ func (e *Editor) styleNode(l *leaf) *theme.Node {
 // leafStyle returns a leaf's block style.
 func (e *Editor) leafStyle(l *leaf) *theme.Computed {
 	return e.styledLeaf(l).style
+}
+
+// leafStyleID returns the identity of a leaf's block style.
+func (e *Editor) leafStyleID(l *leaf) uint64 {
+	return e.styledLeaf(l).id
+}
+
+// textNode returns the node of a leaf's text: its block, or the document
+// for a heading being typed.
+func (e *Editor) textNode(l *leaf) *theme.Node {
+	if l.kind == kHeading && l.pending {
+		return e.res.Root()
+	}
+	return e.styleNode(l)
 }
 
 // leafStyleState returns a leaf's block style with extra states, as a

@@ -104,6 +104,7 @@ type Editor struct {
 	contBuf     []byte
 	styledByGen map[uint64][]*leafStyled
 	fastByGen   map[uint64]map[uint64]*leafStyled
+	nextStyleID uint64
 	views       map[viewKey]*leafView
 	frame       uint64
 	assetGen    atomic.Uint64

@@ -15,4 +15,4 @@ raw [25,51) line=25 syntax=25 box=40.00,136.00,640.00,22.40 raw
   text s[0,26) d[0,26) "[ref]: https://example.com" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 heading [55,58) line=53 syntax=53 box=40.00,180.80,640.00,45.36 h1
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=45.36
-  text s[2,5) d[0,3) "Top" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[2,5) d[0,3) "Top" font="" size=33.60 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false

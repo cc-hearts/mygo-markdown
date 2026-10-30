@@ -45,12 +45,12 @@ rule [150,153) line=150 syntax=150 box=40.00,508.65,640.00,19.20
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=19.20
 para [164,180) line=155 syntax=164 box=68.00,539.05,612.00,28.00 F:note
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[9,25) d[0,16) "The note's text." font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[9,25) d[0,16) "The note's text." font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 para [182,213) line=182 syntax=182 box=40.00,578.25,640.00,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[0,11) d[0,11) "A reference" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[0,11) d[0,11) "A reference" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
   atom s[11,18) d[11,17) "[note]" font="" size=12.00 weight=0 italic=false underline=false wavy=false strike=false color=2563ebff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[18,31) d[17,30) " to the note." font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[18,31) d[17,30) " to the note." font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 raw [215,249) line=215 syntax=215 box=40.00,617.45,640.00,22.40 raw
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=22.40
   line 215 "[ref]: https://example.com \"Title\""

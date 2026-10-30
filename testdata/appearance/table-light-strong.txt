@@ -2,30 +2,30 @@ column 40.00 640.00 35.20
 table [0,97) line=0 syntax=0 box=40.00,35.20,640.00,127.20
 r0c0 para [2,6) line=0 syntax=2 box=51.20,42.40,41.05,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[2,6) d[0,4) "Left" font="" size=0.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[2,6) d[0,4) "Left" font="" size=16.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r0c1 para [9,15) line=0 syntax=9 box=114.65,42.40,54.75,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[9,15) d[0,6) "Center" font="" size=0.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[9,15) d[0,6) "Center" font="" size=16.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r0c2 para [18,23) line=0 syntax=18 box=191.80,42.40,43.18,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[18,23) d[0,5) "Right" font="" size=0.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[18,23) d[0,5) "Right" font="" size=16.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r1c0 para [54,55) line=52 syntax=54 box=51.20,84.80,41.05,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[2,3) d[0,1) "a" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[2,3) d[0,1) "a" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r1c1 para [61,62) line=52 syntax=61 box=114.65,84.80,54.75,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[9,10) d[0,1) "b" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[9,10) d[0,1) "b" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r1c2 para [70,71) line=52 syntax=70 box=191.80,84.80,43.18,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[18,19) d[0,1) "c" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[18,19) d[0,1) "c" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r2c0 para [80,85) line=78 syntax=80 box=51.20,127.20,41.05,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[2,4) d[0,2) "**" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717ab3 decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=true
-  text s[4,5) d[2,3) "d" font="" size=0.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[5,7) d[3,5) "**" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717ab3 decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=true
+  text s[2,4) d[0,2) "**" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=71717ab3 decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=true
+  text s[4,5) d[2,3) "d" font="" size=16.00 weight=700 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[5,7) d[3,5) "**" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=71717ab3 decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=true
 r2c1 para [87,90) line=78 syntax=87 box=114.65,127.20,54.75,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
   text s[10,11) d[0,1) "e" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=c7254eff decoration=00000000:0.00 bg=0000000e radius=3.20 spacing=0.00 shift=0.00 features="" lang="" marker=false
 r2c2 para [96,97) line=78 syntax=96 box=191.80,127.20,43.18,28.00
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
-  text s[18,19) d[0,1) "f" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[18,19) d[0,1) "f" font="" size=16.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false

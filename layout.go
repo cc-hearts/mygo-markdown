@@ -89,61 +89,6 @@ func (e *Editor) setLook(t *ui.Theme) {
 	lk.code = editor.DefaultTheme(t)
 }
 
-// span returns how text in style st looks, in a leaf of text of size.
-func (lk *look) span(st istyle, size float32) ui.Span {
-	s := ui.Span{Color: lk.text}
-	if st.muted {
-		s.Color = lk.muted
-	}
-	if st.bold {
-		s.Weight = 700
-	}
-	if st.italic {
-		s.Italic = true
-	}
-	if st.strike {
-		s.Strikethrough = true
-	}
-	if st.under {
-		s.Underline = true
-	}
-	if st.link {
-		s.Color = lk.accent
-	}
-	if st.mark {
-		s.Background = lk.markBg
-	}
-	if st.code {
-		s.Font = lk.mono
-		s.Size = size * 0.875
-		s.Background = lk.codeBg
-		s.Radius = max(3, size/5)
-		if !st.link {
-			s.Color = lk.codeText
-		}
-	}
-	if st.kbd {
-		s.Font = lk.mono
-		s.Size = size * 0.85
-		s.Background = lk.codeBg
-		s.Radius = 3
-	}
-	if st.sup || st.sub {
-		s.Size = size * 0.75
-		s.BaselineShift = size * 0.35
-		if st.sub {
-			s.BaselineShift = -size * 0.2
-		}
-	}
-	if st.marker {
-		s.Color = lk.marker
-		s.Background = ui.Color{}
-		s.Underline, s.Strikethrough = false, false
-		s.Radius = 0
-	}
-	return s
-}
-
 // leafView is a leaf as the editor shows it: its display, laid out, and
 // the boxes around it, relative to the leaf's box.
 type leafView struct {
@@ -192,6 +137,7 @@ type viewKey struct {
 	text      string
 	look      lookKey
 	styleGen  uint64
+	styleID   uint64
 	assets    uint64
 	align     parser.Align
 }
@@ -254,6 +200,7 @@ func (e *Editor) viewWith(l *leaf, width float32, header bool, align parser.Alig
 		reveal:   reveal,
 		look:     e.lk.key(),
 		styleGen: e.styleGen,
+		styleID:  e.leafStyleID(l),
 		assets:   e.assetGen.Load(),
 		align:    align,
 	}
@@ -320,18 +267,7 @@ func (e *Editor) textFont(l *leaf) ui.Font {
 func (e *Editor) textView(l *leaf, width float32, at int, withCompose, header bool, align parser.Align) *leafView {
 	f := e.textFont(l)
 	b := e.newBuilder(l, at, withCompose, f.Size, width)
-	st := istyle{}
-	if header {
-		st.bold = true
-	}
-	for _, c := range l.conts {
-		if c.kind == cQuote {
-			st.muted = true
-		}
-	}
-	if task, ok := l.innerItem(); ok && task.task == parser.Checked && l.opensItem() {
-		st.muted, st.strike = true, true
-	}
+	st := istyle{node: e.textNode(l)}
 	switch {
 	case l.pending || l.kind == kPhantom || l.id < 0:
 		b.textRun(l.start, l.end, st)
@@ -425,10 +361,12 @@ func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *lea
 	plain := ui.Span{Color: uiColor(cs.Color)}
 	infoLine := l.fenced && caretIn && b.reveal >= l.infoStart && b.reveal <= l.infoEnd
 	if infoLine {
-		mark := ui.Span{Color: e.lk.marker}
+		node := e.styleNode(l)
+		fenceStyle := e.styleSpan(node.Child(syntaxElement("")).Style())
+		infoStyle := e.styleSpan(node.Child(syntaxElement("info")).Style())
 		fence := strings.TrimLeft(e.src[l.lineStart:l.fenceEnd], " \t>")
-		b.deco(l.infoStart, fence, mark, nil)
-		b.spanRun(l.infoStart, l.infoEnd, ui.Span{Color: e.lk.muted})
+		b.deco(l.infoStart, fence, fenceStyle, nil)
+		b.spanRun(l.infoStart, l.infoEnd, infoStyle)
 		if len(l.lines) > 0 {
 			b.spanAtom(l.infoEnd, l.lines[0].off, "\n", plain)
 		}
@@ -583,7 +521,7 @@ func (e *Editor) ruleView(l *leaf, width float32, at int, withCompose bool) *lea
 	}
 	f := e.styleFont(cs)
 	b := e.newBuilder(l, at, withCompose, f.Size, width)
-	b.spanRun(l.start, l.end, ui.Span{Color: e.lk.marker})
+	b.spanRun(l.start, l.end, e.styleSpan(e.styleNode(l).Child(syntaxElement("")).Style()))
 	b.finish(l.end)
 	b.ensure(l.start)
 	v := &leafView{style: cs, disp: b.display(), reveal: true}

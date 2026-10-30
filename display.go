@@ -6,6 +6,8 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown/parser"
+
+	"github.com/CarlOpenLab/livemark/theme"
 )
 
 // A leaf shows as display text: the characters drawn, each piece of which
@@ -52,11 +54,27 @@ type object struct {
 	block bool
 }
 
-// istyle is the inline style a run of text is in.
+// istyle is the theme node a run of text is in: its leaf's block, and the
+// inline constructs around it.
 type istyle struct {
-	bold, italic, strike, code, link, under, mark, sup, sub, kbd bool
-	marker                                                       bool
-	muted                                                        bool
+	node *theme.Node
+}
+
+// child returns st in the element el inside the node st is in.
+func (st istyle) child(el theme.Element) istyle {
+	if st.node == nil {
+		return st
+	}
+	return istyle{node: st.node.Child(el)}
+}
+
+// syntaxElement returns the element of a marker of syntax, of a class.
+func syntaxElement(class string) theme.Element {
+	el := theme.Element{Type: "syntax"}
+	if class != "" {
+		el.Classes = []string{class}
+	}
+	return el
 }
 
 // builder makes the pieces of a leaf's display.
@@ -146,7 +164,12 @@ func (b *builder) finish(end int) {
 }
 
 // span returns how text in style st looks in the leaf.
-func (b *builder) span(st istyle) ui.Span { return b.e.lk.span(st, b.fontSize) }
+func (b *builder) span(st istyle) ui.Span {
+	if st.node == nil {
+		return b.e.styleSpan(b.e.rootStyle())
+	}
+	return b.e.styleSpan(st.node.Style())
+}
 
 // spanRun adds source text from s to e as it is, in sp.
 func (b *builder) spanRun(s, e int, sp ui.Span) {
@@ -184,12 +207,19 @@ func (b *builder) textRun(s, e int, st istyle) {
 }
 
 // marker adds syntax shown because the caret is at it.
-func (b *builder) marker(s, e int, st istyle) {
+func (b *builder) marker(s, e int, st istyle, class string) {
 	if e <= s {
 		return
 	}
-	st.marker = true
-	b.add(piece{kind: pText, s0: s - b.base, s1: e - b.base, text: b.src[s:e], span: b.span(st), marker: true})
+	b.marked(s, e, st, syntaxElement(class))
+}
+
+// marked adds source text shown as it is written, in the element el.
+func (b *builder) marked(s, e int, st istyle, el theme.Element) {
+	if e <= s {
+		return
+	}
+	b.add(piece{kind: pText, s0: s - b.base, s1: e - b.base, text: b.src[s:e], span: b.span(st.child(el)), marker: true})
 }
 
 // atom adds display text standing for the source from s to e as a whole.
@@ -197,6 +227,9 @@ func (b *builder) atom(s, e int, text string, st istyle, obj *object) {
 	sp := b.span(st)
 	if obj != nil {
 		b.hasObjects = true
+		// An object is not text: the span's background would show around
+		// the box it draws.
+		sp.Background, sp.Radius = ui.Color{}, 0
 		sp.ObjectWidth, sp.ObjectHeight, sp.ObjectDescent = obj.w, obj.h, obj.descent
 		text = "￼"
 	}
@@ -207,6 +240,7 @@ func (b *builder) atom(s, e int, text string, st istyle, obj *object) {
 func (b *builder) deco(s int, text string, sp ui.Span, obj *object) {
 	if obj != nil {
 		b.hasObjects = true
+		sp.Background, sp.Radius = ui.Color{}, 0
 		sp.ObjectWidth, sp.ObjectHeight, sp.ObjectDescent = obj.w, obj.h, obj.descent
 		text = "￼"
 	}
@@ -297,7 +331,7 @@ func (b *builder) text_(s, e int, st istyle) {
 		if c == '\\' && p+1 < e && isASCIIPunct(src[p+1]) {
 			b.textRun(run, p, st)
 			if b.revealed(p, p+2) {
-				b.marker(p, p+1, st)
+				b.marker(p, p+1, st, "escape")
 				b.textRun(p+1, p+2, st)
 			} else {
 				b.atom(p, p+2, src[p+1:p+2], st, nil)
@@ -310,7 +344,7 @@ func (b *builder) text_(s, e int, st istyle) {
 			if n, txt := parser.Entity(src[p:e]); n > 0 && txt != "" {
 				b.textRun(run, p, st)
 				if b.revealed(p, p+n) {
-					b.marker(p, p+n, st)
+					b.marker(p, p+n, st, "entity")
 				} else {
 					b.atom(p, p+n, txt, st, nil)
 				}
@@ -336,22 +370,23 @@ func (b *builder) wrapped(ins []parser.Inline, i int, st istyle) {
 	}
 	rev := b.revealed(in.Start, in.End)
 	inner := st
+	class := ""
 	switch in.Kind {
 	case parser.Emphasis:
-		inner.italic = true
+		inner, class = st.child(theme.Element{Type: "emphasis"}), "emphasis"
 	case parser.Strong:
-		inner.bold = true
+		inner, class = st.child(theme.Element{Type: "strong"}), "strong"
 	case parser.Strikethrough:
-		inner.strike = true
+		inner, class = st.child(theme.Element{Type: "strike"}), "strike"
 	}
 	if rev {
-		b.marker(in.Start, cs, st)
+		b.marker(in.Start, cs, st, class)
 	}
 	b.pos = cs
 	b.walk(ins, i+1, in.Next, inner)
 	b.gap(ce, inner)
 	if rev {
-		b.marker(ce, in.End, st)
+		b.marker(ce, in.End, st, class)
 	}
 	b.pos = in.End
 }
@@ -361,12 +396,21 @@ func (b *builder) wrapped(ins []parser.Inline, i int, st istyle) {
 func (b *builder) link(ins []parser.Inline, i int, st istyle) {
 	in := &ins[i]
 	cs, ce := children(ins, i, in.Start)
-	inner := st
-	inner.link = true
+	el := theme.Element{Type: "link"}
+	if in.Auto {
+		el.Classes = append(el.Classes, "auto")
+	}
+	if in.Dest != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "href", Value: in.Dest})
+	}
+	if in.Title != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "title", Value: in.Title})
+	}
+	inner := st.child(el)
 	if cs == in.Start {
 		// A link without text shows its source, as there is nothing else
 		// to click or to see.
-		b.marker(in.Start, in.End, st)
+		b.marker(in.Start, in.End, st, "link")
 		return
 	}
 	if in.Auto && cs == in.Start && ce == in.End {
@@ -375,13 +419,13 @@ func (b *builder) link(ins []parser.Inline, i int, st istyle) {
 	}
 	rev := b.revealed(in.Start, in.End)
 	if rev {
-		b.marker(in.Start, cs, st)
+		b.marker(in.Start, cs, st, "link")
 	}
 	b.pos = cs
 	b.walk(ins, i+1, in.Next, inner)
 	b.gap(ce, inner)
 	if rev {
-		b.marker(ce, in.End, st)
+		b.marker(ce, in.End, st, "link")
 	}
 	b.pos = in.End
 }
@@ -396,16 +440,15 @@ func (b *builder) codeSpan(in *parser.Inline, st istyle) {
 	if ce < cs {
 		ce = cs
 	}
-	inner := st
-	inner.code = true
+	inner := st.child(theme.Element{Type: "code", Classes: []string{"inline"}})
 	if b.revealed(in.Start, in.End) {
-		b.marker(in.Start, cs, st)
+		b.marker(in.Start, cs, st, "code")
 		b.textRun(cs, ce, inner)
-		b.marker(ce, in.End, st)
+		b.marker(ce, in.End, st, "code")
 		return
 	}
 	if ce == cs {
-		b.marker(in.Start, in.End, st)
+		b.marker(in.Start, in.End, st, "code")
 		return
 	}
 	b.textRun(cs, ce, inner)
@@ -419,58 +462,78 @@ func (b *builder) math(in *parser.Inline, st istyle) {
 		n = 2
 	}
 	cs, ce := min(in.Start+n, in.End), max(in.End-n, in.Start+n)
+	el := theme.Element{Type: "math", Classes: []string{"inline"}}
 	if b.revealed(in.Start, in.End) {
-		inner := st
-		inner.code = true
-		b.marker(in.Start, cs, st)
+		el.States |= theme.Revealed
+		inner := st.child(el)
+		b.marker(in.Start, cs, st, "math")
 		b.textRun(cs, min(ce, in.End), inner)
-		b.marker(min(ce, in.End), in.End, st)
+		b.marker(min(ce, in.End), in.End, st, "math")
 		return
 	}
 	if obj := b.e.mathObject(in.Text, b.fontSize, in.Display); obj != nil {
-		b.atom(in.Start, in.End, "", st, obj)
+		b.atom(in.Start, in.End, "", st.child(el), obj)
 		return
 	}
-	inner := st
-	inner.italic = true
-	b.atom(in.Start, in.End, texFallback(in.Text), inner, nil)
+	el.States |= theme.Broken
+	b.atom(in.Start, in.End, texFallback(in.Text), st.child(el), nil)
+}
+
+// eimage returns the theme element of an image inline.
+func eimage(in *parser.Inline, obj *object) theme.Element {
+	el := theme.Element{Type: "image"}
+	if in.Dest != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "src", Value: in.Dest})
+	}
+	if in.Title != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "title", Value: in.Title})
+	}
+	if obj != nil && obj.alt != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "alt", Value: obj.alt})
+	}
+	if obj == nil || obj.bmp == nil {
+		el.States |= theme.Broken
+	}
+	return el
 }
 
 // image adds an image: drawn, and its source too while the caret is at it.
 func (b *builder) image(ins []parser.Inline, i int, st istyle) {
 	in := &ins[i]
 	obj := b.e.imageObject(in.Dest, b.e.plainText(ins[i+1:max(in.Next, i+1)]), b.width, b.alone)
+	el := eimage(in, obj)
 	if !b.revealed(in.Start, in.End) {
-		b.atom(in.Start, in.End, "", st, obj)
+		b.atom(in.Start, in.End, "", st.child(el), obj)
 		return
 	}
 	b.revealedAny = true
+	el.States = theme.Revealed
 	cs, ce := children(ins, i, in.Start+2)
-	alt := st
-	alt.muted = true
-	b.marker(in.Start, cs, st)
+	alt := st.child(el)
+	b.marker(in.Start, cs, st, "image")
 	b.pos = cs
 	b.walk(ins, i+1, in.Next, alt)
 	b.gap(ce, alt)
-	b.marker(ce, in.End, st)
+	b.marker(ce, in.End, st, "image")
 	b.pos = in.End
 	if obj != nil && obj.block {
 		b.deco(in.End, "\n", b.span(st), nil)
 	}
-	b.deco(in.End, "", b.span(st), obj)
+	b.deco(in.End, "", b.span(alt), obj)
 }
 
 // footnoteRef adds a reference to a footnote: its label raised, or its
 // source while the caret is at it.
 func (b *builder) footnoteRef(in *parser.Inline, st istyle) {
 	if b.revealed(in.Start, in.End) {
-		b.marker(in.Start, in.End, st)
+		b.marker(in.Start, in.End, st, "footnote-ref")
 		return
 	}
-	sp := b.span(st)
-	sp.Color = b.e.lk.accent
-	sp.Size = b.fontSize * 0.75
-	b.add(piece{kind: pAtom, s0: in.Start - b.base, s1: in.End - b.base, text: "[" + in.Text + "]", span: sp})
+	el := theme.Element{Type: "footnote-ref"}
+	if in.Text != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "label", Value: in.Text})
+	}
+	b.add(piece{kind: pAtom, s0: in.Start - b.base, s1: in.End - b.base, text: "[" + in.Text + "]", span: b.span(st.child(el))})
 }
 
 // htmlInline adds a tag within text. The tags of formatting, as <u> and
@@ -479,20 +542,21 @@ func (b *builder) footnoteRef(in *parser.Inline, st istyle) {
 func (b *builder) htmlInline(in *parser.Inline, st istyle) istyle {
 	name, closing, ok := htmlTagName(in.Text)
 	if !ok {
-		b.marker(in.Start, in.End, st)
+		b.marked(in.Start, in.End, st, htmlInlineElement(""))
 		return st
 	}
 	rev := b.revealed(in.Start, in.End)
+	el := htmlInlineElement(name)
 	if name == "br" {
 		if rev {
-			b.marker(in.Start, in.End, st)
+			b.marked(in.Start, in.End, st, el)
 		} else {
-			b.atom(in.Start, in.End, "\n", st, nil)
+			b.atom(in.Start, in.End, "\n", st.child(el), nil)
 		}
 		return st
 	}
 	if rev {
-		b.marker(in.Start, in.End, st)
+		b.marked(in.Start, in.End, st, el)
 	} else {
 		b.pos = in.End
 	}
@@ -509,25 +573,34 @@ func (b *builder) htmlInline(in *parser.Inline, st istyle) istyle {
 	b.htmlTags = append(b.htmlTags, htmlTag{name: name, prev: st})
 	switch name {
 	case "b", "strong":
-		st.bold = true
+		st = st.child(theme.Element{Type: "strong"})
 	case "i", "em":
-		st.italic = true
+		st = st.child(theme.Element{Type: "emphasis"})
 	case "u", "ins":
-		st.under = true
+		st = st.child(theme.Element{Type: "underline"})
 	case "s", "del", "strike":
-		st.strike = true
+		st = st.child(theme.Element{Type: "strike"})
 	case "mark":
-		st.mark = true
+		st = st.child(theme.Element{Type: "mark"})
 	case "sup":
-		st.sup = true
+		st = st.child(theme.Element{Type: "sup"})
 	case "sub":
-		st.sub = true
+		st = st.child(theme.Element{Type: "sub"})
 	case "kbd":
-		st.kbd = true
+		st = st.child(theme.Element{Type: "kbd"})
 	case "code":
-		st.code = true
+		st = st.child(theme.Element{Type: "code", Classes: []string{"inline"}})
 	}
 	return st
+}
+
+// htmlInlineElement returns the element of an HTML tag shown within text.
+func htmlInlineElement(tag string) theme.Element {
+	el := theme.Element{Type: "html", Classes: []string{"inline"}}
+	if tag != "" {
+		el.Attrs = append(el.Attrs, theme.Attr{Name: "tag", Value: tag})
+	}
+	return el
 }
 
 // htmlTagName reads the name of a tag of formatting, and whether it
