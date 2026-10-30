@@ -114,13 +114,10 @@ func (e *Editor) pickFont(fams []string) string {
 	for _, f := range fams {
 		switch strings.ToLower(strings.TrimSpace(f)) {
 		case "system-ui", "sans-serif", "-apple-system", "ui-sans-serif", "inherit":
-			if e.lk.font != "" {
-				return e.lk.font
+			if e.uiFont != "" {
+				return e.uiFont
 			}
 		case "monospace", "ui-monospace":
-			if e.lk.mono != "" {
-				return e.lk.mono
-			}
 			return "monospace"
 		default:
 			if f != "" {
@@ -128,7 +125,7 @@ func (e *Editor) pickFont(fams []string) string {
 			}
 		}
 	}
-	return e.lk.font
+	return e.uiFont
 }
 
 // styleFont returns the ui font of a computed style.

@@ -580,7 +580,7 @@ func (e *Editor) phantomAtEdge(li, dir int) bool {
 	default:
 		return false
 	}
-	if len(l.conts) > 0 || l.whole {
+	if len(l.conts) > 0 {
 		return false
 	}
 	if dir > 0 {

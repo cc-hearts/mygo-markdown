@@ -300,7 +300,7 @@ func (e *Editor) page(down bool, extend bool) {
 	if !e.hasGoal {
 		e.goalX, e.hasGoal = r.X, true
 	}
-	h := max(e.viewH-e.lk.size*3, e.lk.size*3)
+	h := max(e.viewH-e.baseSize()*3, e.baseSize()*3)
 	y := r.Y + r.H/2 - h
 	if down {
 		y = r.Y + r.H/2 + h
@@ -347,7 +347,7 @@ func (e *Editor) press(ev ui.InputEvent) bool {
 	// text.
 	if len(e.leaves) > 0 && ev.Clicks <= 1 && ev.Mods&ui.Shift == 0 {
 		last := e.leaves[len(e.leaves)-1]
-		if y > last.y+last.h+e.lk.size*0.5 && e.phantomAtEdge(len(e.leaves)-1, 1) {
+		if y > last.y+last.h+e.baseSize()*0.5 && e.phantomAtEdge(len(e.leaves)-1, 1) {
 			return true
 		}
 	}
@@ -452,7 +452,7 @@ func (e *Editor) hover(x, y float32, mods ui.Modifiers) {
 // taskBoxAt returns the item whose check box is at x, y.
 func (e *Editor) taskBoxAt(x, y float32) (cont, bool) {
 	for _, l := range e.leaves {
-		if y < l.y-4 || y > l.y+e.lk.size*e.lk.lh+4 {
+		if y < l.y-4 || y > l.y+e.baseSize()*e.baseLine()+4 {
 			continue
 		}
 		for _, k := range l.firstOf {
@@ -476,7 +476,7 @@ func (e *Editor) codeLabelAt(x, y float32) *leaf {
 		if l.kind != kCode || !l.fenced || l.view == nil || l.view.reveal {
 			continue
 		}
-		if y >= l.y && y <= l.y+e.lk.size*1.4 && x >= l.x+l.w-e.lk.size*6 && x <= l.x+l.w {
+		if y >= l.y && y <= l.y+e.baseSize()*1.4 && x >= l.x+l.w-e.baseSize()*6 && x <= l.x+l.w {
 			if l.lang != "" || e.leafAt(e.caret) == l {
 				return l
 			}

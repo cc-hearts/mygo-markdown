@@ -15,7 +15,6 @@ type laid struct {
 	reveal     int
 	compose    string
 	colX, colW float32
-	look       lookKey
 	styleGen   uint64
 	assets     uint64
 	phantom    *phantom
@@ -24,7 +23,7 @@ type laid struct {
 }
 
 // layoutIfNeeded lays the document out again when what it shows changed:
-// the source, the caret, the width, the look.
+// the source, the caret, the width, the theme.
 func (e *Editor) layoutIfNeeded() {
 	e.sync()
 	k := laid{
@@ -34,7 +33,6 @@ func (e *Editor) layoutIfNeeded() {
 		compose:  e.compose,
 		colX:     e.colX,
 		colW:     e.colW,
-		look:     e.lk.key(),
 		styleGen: e.styleGen,
 		assets:   e.assetGen.Load(),
 		phantom:  e.phantom,
@@ -55,7 +53,7 @@ func (e *Editor) layoutIfNeeded() {
 // the user writes on.
 func (e *Editor) View(c *ui.Context) ui.Element {
 	t := c.Theme()
-	e.setLook(t)
+	e.dark, e.uiFont = t.Dark, t.Font
 	e.ensureResolver(t)
 	e.frame++
 	e.services = c.Services()
@@ -68,20 +66,18 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	if b.W > 0 {
 		e.elemW, e.viewH = b.W, b.H
 	}
-	maxW := e.opts.MaxWidth
+	root := e.rootStyle()
+	maxW := root.MaxWidth
 	if maxW <= 0 {
 		maxW = 820
 	}
-	padX := e.opts.PadX
-	if padX <= 0 {
-		padX = 40
-	}
+	padX := max(root.Padding.Left, root.Padding.Right)
 	if e.elemW > 0 {
 		e.colW = max(min(maxW, e.elemW-2*padX), 120)
 		e.colX = max((e.elemW-e.colW)/2, 0)
 	}
-	e.padTop = e.lk.size * 2.2
-	e.padBottom = max(e.viewH*0.35, e.lk.size*4)
+	e.padTop = root.Padding.Top
+	e.padBottom = max(e.viewH*0.35, e.baseSize()*4)
 	e.layoutIfNeeded()
 	e.pruneViews()
 	e.scrollIntoView()
@@ -91,7 +87,7 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 	sc.Children(func() {
 		label := e.opts.Label
 		if label == "" {
-			label = "文档"
+			label = "Document"
 		}
 		el := ui.Box(c).FillWidth().Height(h).Focusable().FocusRing(false).Bind(&e.handle).
 			Cursor(e.cursor).Role(ui.RoleTextField).Label(label).
@@ -129,7 +125,7 @@ func (e *Editor) scrollIntoView() {
 		e.hasScrollTo = false
 		e.wantReveal = false
 		if r, ok := e.caretRect(e.scrollTo); ok {
-			e.scroll.Y = max(r.Y-e.lk.size*2, 0)
+			e.scroll.Y = max(r.Y-e.baseSize()*2, 0)
 		}
 		return
 	}
@@ -141,7 +137,7 @@ func (e *Editor) scrollIntoView() {
 	if !ok {
 		return
 	}
-	margin := min(e.lk.size*3, e.viewH/4)
+	margin := min(e.baseSize()*3, e.viewH/4)
 	switch {
 	case r.Y < e.scroll.Y+margin:
 		e.scroll.Y = max(r.Y-margin, 0)

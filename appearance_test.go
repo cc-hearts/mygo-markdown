@@ -239,7 +239,7 @@ func TestAppearanceBaseline(t *testing.T) {
 // newBaselineEditor lays the document out in a fixed window, focused with
 // the caret where the case says.
 func newBaselineEditor(c appearanceCase) (*Editor, *ui.Tester) {
-	e := New(c.src, Options{FontSize: 16})
+	e := New(c.src, Options{})
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			e.View(c).Grow(1)
@@ -293,9 +293,6 @@ func snapshotLeaf(sb *strings.Builder, e *Editor, l *leaf, cell string) {
 	}
 	if l.frontMatter {
 		sb.WriteString(" frontmatter")
-	}
-	if l.whole {
-		sb.WriteString(" whole")
 	}
 	for _, c := range l.conts {
 		switch c.kind {

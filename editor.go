@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo/ui/markdown/parser"
 
 	"github.com/CarlOpenLab/livemark/internal/parse"
+	"github.com/CarlOpenLab/livemark/syntax"
 	"github.com/CarlOpenLab/livemark/theme"
 )
 
@@ -20,17 +21,6 @@ type Options struct {
 	// Theme is the document's theme, default.css when nil. Its styles
 	// decide every length and color the editor draws with.
 	Theme *theme.Theme
-	// FontSize is the body text's size in DIPs (16 when 0), LineHeight its
-	// line height as a multiple of it (1.75 when 0).
-	FontSize   float32
-	LineHeight float32
-	// Font and MonoFont are the families of text and of code: the
-	// theme's font and the system's monospaced one when empty.
-	Font, MonoFont string
-	// MaxWidth caps the column of text (820 when 0); PadX is the least room
-	// beside it.
-	MaxWidth float32
-	PadX     float32
 	// BaseDir resolves the relative paths of images.
 	BaseDir string
 	// Placeholder shows in an empty document.
@@ -45,10 +35,6 @@ type Options struct {
 	OnChange func()
 	// OnLink opens a link the user Cmd-clicked (Ctrl-clicked).
 	OnLink func(url string)
-	// Code makes the document code rather than Markdown, as a .json or a
-	// .go file is: its lines show as they are, highlighted as the language
-	// of that name, or plain when the name is "text".
-	Code string
 	// SaveImage stores an image pasted into the document and returns the
 	// path a Markdown image links it by; nil keeps pasted images out.
 	SaveImage func(data []byte, ext string) (string, error)
@@ -93,7 +79,10 @@ type Editor struct {
 
 	hist history
 
-	lk          look
+	// dark is the window's appearance, which formulas draw for; uiFont is
+	// its font, which the system font of the theme resolves to.
+	dark        bool
+	uiFont      string
 	theme       *theme.Theme
 	res         *theme.Resolver
 	resCache    map[styleKey]*resolverGen
@@ -108,6 +97,9 @@ type Editor struct {
 	views       map[viewKey]*leafView
 	frame       uint64
 	assetGen    atomic.Uint64
+	// syn is the syntax tree of the source at rev synRev, for Syntax.
+	syn    *syntax.Tree
+	synRev uint64
 
 	// The element's size and where the column of text is in it.
 	elemW, viewH float32
@@ -183,8 +175,9 @@ func New(src string, opts Options) *Editor {
 	}
 	// The window's theme comes with the first frame; until then, the light
 	// one, so that a document opened before it lays out.
-	e.setLook(ui.LightTheme())
-	e.ensureResolver(ui.LightTheme())
+	lt := ui.LightTheme()
+	e.dark, e.uiFont = lt.Dark, lt.Font
+	e.ensureResolver(lt)
 	e.SetSource(src)
 	return e
 }
@@ -194,10 +187,6 @@ func (e *Editor) SetOptions(opts Options) {
 	e.theme = opts.Theme
 	if e.theme == nil {
 		e.theme = theme.New()
-	}
-	if opts.Code != e.opts.Code {
-		e.rev++
-		e.parsed = 0
 	}
 	e.opts = opts
 }
@@ -233,12 +222,6 @@ func (e *Editor) SetSource(src string) {
 // sync parses the source again when it changed, and makes the leaves.
 func (e *Editor) sync() {
 	if e.parsed == e.rev && e.leaves != nil {
-		return
-	}
-	if e.opts.Code != "" {
-		e.fm = 0
-		e.leaves = []*leaf{codeDocLeaf(e.src, e.opts.Code)}
-		e.parsed = e.rev
 		return
 	}
 	text, fm := parse.Text(e.src)

@@ -43,7 +43,7 @@ func benchSource(reps int) string {
 // newBenchEditor lays src out in a fixed window.
 func newBenchEditor(b *testing.B, src string) (*Editor, *ui.Tester) {
 	b.Helper()
-	e := New(src, Options{FontSize: 16})
+	e := New(src, Options{})
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			e.View(c).Grow(1)

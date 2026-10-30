@@ -230,7 +230,7 @@ func (e *Editor) BoundsForRange(r ui.TextInputRange) (ui.Rect, ui.TextInputRange
 	}
 	actual := ui.TextInputRange{Start: r.Start, End: r.Start}
 	if r.End > r.Start {
-		rect.W = max(rect.W, e.lk.size*0.6)
+		rect.W = max(rect.W, e.baseSize()*0.6)
 		actual.End = r.Start + 1
 	}
 	return rect, actual, true

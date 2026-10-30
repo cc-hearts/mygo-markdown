@@ -45,8 +45,9 @@ type piece struct {
 // gives its object replacement character.
 type object struct {
 	bmp *ui.Bitmap
-	// alt is drawn in a placeholder while bmp is nil.
-	alt string
+	// alt is drawn in a placeholder while bmp is nil, in style.
+	alt   string
+	style *theme.Computed
 	// w, h and descent are the box's size, in DIPs.
 	w, h, descent float32
 	// block makes the object a line of its own, centered: a paragraph of
@@ -54,18 +55,13 @@ type object struct {
 	block bool
 }
 
-// istyle is the theme node a run of text is in: its leaf's block, and the
-// inline constructs around it.
-type istyle struct {
-	node *theme.Node
-}
-
-// child returns st in the element el inside the node st is in.
-func (st istyle) child(el theme.Element) istyle {
-	if st.node == nil {
-		return st
+// child returns the node of the element el inside n, nil for nil: the
+// theme node a run of text is in, and the inline construct inside it.
+func child(n *theme.Node, el theme.Element) *theme.Node {
+	if n == nil {
+		return nil
 	}
-	return istyle{node: st.node.Child(el)}
+	return n.Child(el)
 }
 
 // syntaxElement returns the element of a marker of syntax, of a class.
@@ -111,7 +107,7 @@ type builder struct {
 
 type htmlTag struct {
 	name string
-	prev istyle
+	prev *theme.Node
 }
 
 func (b *builder) revealed(s, e int) bool { return b.reveal >= s && b.reveal <= e }
@@ -164,11 +160,11 @@ func (b *builder) finish(end int) {
 }
 
 // span returns how text in style st looks in the leaf.
-func (b *builder) span(st istyle) ui.Span {
-	if st.node == nil {
+func (b *builder) span(st *theme.Node) ui.Span {
+	if st == nil {
 		return b.e.styleSpan(b.e.rootStyle())
 	}
-	return b.e.styleSpan(st.node.Style())
+	return b.e.styleSpan(st.Style())
 }
 
 // spanRun adds source text from s to e as it is, in sp.
@@ -199,7 +195,7 @@ func (b *builder) spanAtom(s, e int, text string, sp ui.Span) {
 }
 
 // textRun adds source text from s to e as it is.
-func (b *builder) textRun(s, e int, st istyle) {
+func (b *builder) textRun(s, e int, st *theme.Node) {
 	if e <= s {
 		return
 	}
@@ -207,7 +203,7 @@ func (b *builder) textRun(s, e int, st istyle) {
 }
 
 // marker adds syntax shown because the caret is at it.
-func (b *builder) marker(s, e int, st istyle, class string) {
+func (b *builder) marker(s, e int, st *theme.Node, class string) {
 	if e <= s {
 		return
 	}
@@ -215,17 +211,21 @@ func (b *builder) marker(s, e int, st istyle, class string) {
 }
 
 // marked adds source text shown as it is written, in the element el.
-func (b *builder) marked(s, e int, st istyle, el theme.Element) {
+func (b *builder) marked(s, e int, st *theme.Node, el theme.Element) {
 	if e <= s {
 		return
 	}
-	b.add(piece{kind: pText, s0: s - b.base, s1: e - b.base, text: b.src[s:e], span: b.span(st.child(el)), marker: true})
+	b.add(piece{kind: pText, s0: s - b.base, s1: e - b.base, text: b.src[s:e], span: b.span(child(st, el)), marker: true})
 }
 
 // atom adds display text standing for the source from s to e as a whole.
-func (b *builder) atom(s, e int, text string, st istyle, obj *object) {
+func (b *builder) atom(s, e int, text string, st *theme.Node, obj *object) {
 	sp := b.span(st)
 	if obj != nil {
+		if obj.bmp == nil && st != nil {
+			// A placeholder shows in the style of what it stands for.
+			obj.style = st.Style()
+		}
 		b.hasObjects = true
 		// An object is not text: the span's background would show around
 		// the box it draws.
@@ -250,7 +250,7 @@ func (b *builder) deco(s int, text string, sp ui.Span, obj *object) {
 // gap shows the spaces between the last piece and to, which no inline
 // holds: the parser trims them, the editor shows them, so that a space
 // typed at the end of a line shows with the caret after it.
-func (b *builder) gap(to int, st istyle) {
+func (b *builder) gap(to int, st *theme.Node) {
 	if b.pos >= to {
 		return
 	}
@@ -265,14 +265,14 @@ func (b *builder) gap(to int, st istyle) {
 
 // inlines adds the display of a block's inlines, from the source offset
 // from to to.
-func (b *builder) inlines(ins []parser.Inline, from, to int, st istyle) {
+func (b *builder) inlines(ins []parser.Inline, from, to int, st *theme.Node) {
 	b.pos = from
 	b.walk(ins, 0, len(ins), st)
 	b.gap(to, st)
 	b.finish(to)
 }
 
-func (b *builder) walk(ins []parser.Inline, i, end int, st istyle) {
+func (b *builder) walk(ins []parser.Inline, i, end int, st *theme.Node) {
 	for i < end {
 		in := &ins[i]
 		b.gap(in.Start, st)
@@ -323,7 +323,7 @@ func children(ins []parser.Inline, i int, from int) (int, int) {
 // text_ adds a Text inline's source, with its escapes and character
 // references as the characters they stand for, unless the caret is at
 // them.
-func (b *builder) text_(s, e int, st istyle) {
+func (b *builder) text_(s, e int, st *theme.Node) {
 	src := b.src
 	run := s
 	for p := s; p < e; {
@@ -360,7 +360,7 @@ func (b *builder) text_(s, e int, st istyle) {
 
 // wrapped adds emphasis, strong emphasis or strikethrough: its markers
 // while the caret is at it, and its text in its style.
-func (b *builder) wrapped(ins []parser.Inline, i int, st istyle) {
+func (b *builder) wrapped(ins []parser.Inline, i int, st *theme.Node) {
 	in := &ins[i]
 	cs, ce := children(ins, i, in.Start)
 	if cs == in.Start {
@@ -373,11 +373,11 @@ func (b *builder) wrapped(ins []parser.Inline, i int, st istyle) {
 	class := ""
 	switch in.Kind {
 	case parser.Emphasis:
-		inner, class = st.child(theme.Element{Type: "emphasis"}), "emphasis"
+		inner, class = child(st, theme.Element{Type: "emphasis"}), "emphasis"
 	case parser.Strong:
-		inner, class = st.child(theme.Element{Type: "strong"}), "strong"
+		inner, class = child(st, theme.Element{Type: "strong"}), "strong"
 	case parser.Strikethrough:
-		inner, class = st.child(theme.Element{Type: "strike"}), "strike"
+		inner, class = child(st, theme.Element{Type: "strike"}), "strike"
 	}
 	if rev {
 		b.marker(in.Start, cs, st, class)
@@ -393,7 +393,7 @@ func (b *builder) wrapped(ins []parser.Inline, i int, st istyle) {
 
 // link adds a link: its text, and its brackets and destination while the
 // caret is in it.
-func (b *builder) link(ins []parser.Inline, i int, st istyle) {
+func (b *builder) link(ins []parser.Inline, i int, st *theme.Node) {
 	in := &ins[i]
 	cs, ce := children(ins, i, in.Start)
 	el := theme.Element{Type: "link"}
@@ -406,7 +406,7 @@ func (b *builder) link(ins []parser.Inline, i int, st istyle) {
 	if in.Title != "" {
 		el.Attrs = append(el.Attrs, theme.Attr{Name: "title", Value: in.Title})
 	}
-	inner := st.child(el)
+	inner := child(st, el)
 	if cs == in.Start {
 		// A link without text shows its source, as there is nothing else
 		// to click or to see.
@@ -431,7 +431,7 @@ func (b *builder) link(ins []parser.Inline, i int, st istyle) {
 }
 
 // codeSpan adds code within text: its backticks while the caret is at it.
-func (b *builder) codeSpan(in *parser.Inline, st istyle) {
+func (b *builder) codeSpan(in *parser.Inline, st *theme.Node) {
 	n := 0
 	for in.Start+n < in.End && b.src[in.Start+n] == '`' {
 		n++
@@ -440,7 +440,7 @@ func (b *builder) codeSpan(in *parser.Inline, st istyle) {
 	if ce < cs {
 		ce = cs
 	}
-	inner := st.child(theme.Element{Type: "code", Classes: []string{"inline"}})
+	inner := child(st, theme.Element{Type: "code", Classes: []string{"inline"}})
 	if b.revealed(in.Start, in.End) {
 		b.marker(in.Start, cs, st, "code")
 		b.textRun(cs, ce, inner)
@@ -456,7 +456,7 @@ func (b *builder) codeSpan(in *parser.Inline, st istyle) {
 
 // math adds a formula within text: typeset, or its TeX while the caret is
 // at it.
-func (b *builder) math(in *parser.Inline, st istyle) {
+func (b *builder) math(in *parser.Inline, st *theme.Node) {
 	n := 1
 	if strings.HasPrefix(b.src[in.Start:in.End], "$$") || strings.HasPrefix(b.src[in.Start:in.End], `\(`) || strings.HasPrefix(b.src[in.Start:in.End], `\[`) {
 		n = 2
@@ -465,18 +465,18 @@ func (b *builder) math(in *parser.Inline, st istyle) {
 	el := theme.Element{Type: "math", Classes: []string{"inline"}}
 	if b.revealed(in.Start, in.End) {
 		el.States |= theme.Revealed
-		inner := st.child(el)
+		inner := child(st, el)
 		b.marker(in.Start, cs, st, "math")
 		b.textRun(cs, min(ce, in.End), inner)
 		b.marker(min(ce, in.End), in.End, st, "math")
 		return
 	}
 	if obj := b.e.mathObject(in.Text, b.fontSize, in.Display); obj != nil {
-		b.atom(in.Start, in.End, "", st.child(el), obj)
+		b.atom(in.Start, in.End, "", child(st, el), obj)
 		return
 	}
 	el.States |= theme.Broken
-	b.atom(in.Start, in.End, texFallback(in.Text), st.child(el), nil)
+	b.atom(in.Start, in.End, texFallback(in.Text), child(st, el), nil)
 }
 
 // eimage returns the theme element of an image inline.
@@ -498,18 +498,23 @@ func eimage(in *parser.Inline, obj *object) theme.Element {
 }
 
 // image adds an image: drawn, and its source too while the caret is at it.
-func (b *builder) image(ins []parser.Inline, i int, st istyle) {
+func (b *builder) image(ins []parser.Inline, i int, st *theme.Node) {
 	in := &ins[i]
 	obj := b.e.imageObject(in.Dest, b.e.plainText(ins[i+1:max(in.Next, i+1)]), b.width, b.alone)
 	el := eimage(in, obj)
+	if obj != nil && obj.bmp == nil && st != nil {
+		// The placeholder shows in the style of the broken image, whether
+		// or not its source shows too.
+		obj.style = child(st, el).Style()
+	}
 	if !b.revealed(in.Start, in.End) {
-		b.atom(in.Start, in.End, "", st.child(el), obj)
+		b.atom(in.Start, in.End, "", child(st, el), obj)
 		return
 	}
 	b.revealedAny = true
 	el.States = theme.Revealed
 	cs, ce := children(ins, i, in.Start+2)
-	alt := st.child(el)
+	alt := child(st, el)
 	b.marker(in.Start, cs, st, "image")
 	b.pos = cs
 	b.walk(ins, i+1, in.Next, alt)
@@ -524,7 +529,7 @@ func (b *builder) image(ins []parser.Inline, i int, st istyle) {
 
 // footnoteRef adds a reference to a footnote: its label raised, or its
 // source while the caret is at it.
-func (b *builder) footnoteRef(in *parser.Inline, st istyle) {
+func (b *builder) footnoteRef(in *parser.Inline, st *theme.Node) {
 	if b.revealed(in.Start, in.End) {
 		b.marker(in.Start, in.End, st, "footnote-ref")
 		return
@@ -533,13 +538,13 @@ func (b *builder) footnoteRef(in *parser.Inline, st istyle) {
 	if in.Text != "" {
 		el.Attrs = append(el.Attrs, theme.Attr{Name: "label", Value: in.Text})
 	}
-	b.add(piece{kind: pAtom, s0: in.Start - b.base, s1: in.End - b.base, text: "[" + in.Text + "]", span: b.span(st.child(el))})
+	b.add(piece{kind: pAtom, s0: in.Start - b.base, s1: in.End - b.base, text: "[" + in.Text + "]", span: b.span(child(st, el))})
 }
 
 // htmlInline adds a tag within text. The tags of formatting, as <u> and
 // <b>, are hidden, unless the caret is at them, and style the text up to
 // their closing tags; others show as written.
-func (b *builder) htmlInline(in *parser.Inline, st istyle) istyle {
+func (b *builder) htmlInline(in *parser.Inline, st *theme.Node) *theme.Node {
 	name, closing, ok := htmlTagName(in.Text)
 	if !ok {
 		b.marked(in.Start, in.End, st, htmlInlineElement(""))
@@ -551,7 +556,7 @@ func (b *builder) htmlInline(in *parser.Inline, st istyle) istyle {
 		if rev {
 			b.marked(in.Start, in.End, st, el)
 		} else {
-			b.atom(in.Start, in.End, "\n", st.child(el), nil)
+			b.atom(in.Start, in.End, "\n", child(st, el), nil)
 		}
 		return st
 	}
@@ -573,23 +578,23 @@ func (b *builder) htmlInline(in *parser.Inline, st istyle) istyle {
 	b.htmlTags = append(b.htmlTags, htmlTag{name: name, prev: st})
 	switch name {
 	case "b", "strong":
-		st = st.child(theme.Element{Type: "strong"})
+		st = child(st, theme.Element{Type: "strong"})
 	case "i", "em":
-		st = st.child(theme.Element{Type: "emphasis"})
+		st = child(st, theme.Element{Type: "emphasis"})
 	case "u", "ins":
-		st = st.child(theme.Element{Type: "underline"})
+		st = child(st, theme.Element{Type: "underline"})
 	case "s", "del", "strike":
-		st = st.child(theme.Element{Type: "strike"})
+		st = child(st, theme.Element{Type: "strike"})
 	case "mark":
-		st = st.child(theme.Element{Type: "mark"})
+		st = child(st, theme.Element{Type: "mark"})
 	case "sup":
-		st = st.child(theme.Element{Type: "sup"})
+		st = child(st, theme.Element{Type: "sup"})
 	case "sub":
-		st = st.child(theme.Element{Type: "sub"})
+		st = child(st, theme.Element{Type: "sub"})
 	case "kbd":
-		st = st.child(theme.Element{Type: "kbd"})
+		st = child(st, theme.Element{Type: "kbd"})
 	case "code":
-		st = st.child(theme.Element{Type: "code", Classes: []string{"inline"}})
+		st = child(st, theme.Element{Type: "code", Classes: []string{"inline"}})
 	}
 	return st
 }

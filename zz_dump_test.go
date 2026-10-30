@@ -12,12 +12,19 @@ import (
 	"unicode"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/CarlOpenLab/livemark/theme"
 )
 
 var kindName = map[leafKind]string{kPara: "para", kHeading: "heading", kCode: "code", kMath: "math", kHTML: "html", kRule: "rule", kTable: "table", kRaw: "raw", kPhantom: "phantom"}
 
 func styleTags(e *Editor, sp ui.Span) string {
 	var t []string
+	root := e.res.Root()
+	accent := uiColor(root.Child(theme.Element{Type: "link"}).Style().Color)
+	marker := uiColor(root.Child(theme.Element{Type: "syntax"}).Style().Color)
+	muted := uiColor(root.Child(theme.Element{Type: "quote"}).Style().Color)
+	markBg := uiColor(root.Child(theme.Element{Type: "mark"}).Style().TextBackground)
 	if sp.Weight >= 600 {
 		t = append(t, "b")
 	}
@@ -30,19 +37,19 @@ func styleTags(e *Editor, sp ui.Span) string {
 	if sp.Underline {
 		t = append(t, "u")
 	}
-	if sp.Font == e.lk.mono {
+	if sp.Font == "monospace" {
 		t = append(t, "code")
 	}
-	if sp.Color == e.lk.accent {
+	if sp.Color == accent {
 		t = append(t, "link")
 	}
-	if sp.Color == e.lk.marker {
+	if sp.Color == marker {
 		t = append(t, "mk")
 	}
-	if sp.Color == e.lk.muted {
+	if sp.Color == muted {
 		t = append(t, "muted")
 	}
-	if sp.Background == e.lk.markBg {
+	if sp.Background == markBg {
 		t = append(t, "mark")
 	}
 	if sp.BaselineShift > 0 {
@@ -147,7 +154,7 @@ func dumpEditor(e *Editor) string {
 }
 
 func newDumpEditor(src string, focus bool) (*Editor, *ui.Tester) {
-	e := New(src, Options{FontSize: 16})
+	e := New(src, Options{})
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			e.View(c).Grow(1)
@@ -334,7 +341,7 @@ func TestZZShot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := New(string(b), Options{FontSize: 16})
+	e := New(string(b), Options{})
 	h := 2400
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {

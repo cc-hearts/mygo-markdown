@@ -122,9 +122,7 @@ type leaf struct {
 	// setext marks a heading underlined with = or -.
 	setext bool
 	// frontMatter marks the YAML front matter at the top of a document,
-	// whole a document that is code, all of it this leaf.
 	frontMatter bool
-	whole       bool
 
 	// Where the last layout put the leaf, in the editor's content.
 	x, y, w, h float32
@@ -603,28 +601,6 @@ func emptyLeaf(src string, b *parser.Block, conts []cont, ct cont) *leaf {
 	}
 	l.start, l.end = min(p, e), e
 	l.syntaxStart = l.start
-	return l
-}
-
-// codeDocLeaf makes the one leaf of a document that is code: all its
-// lines, highlighted as lang.
-func codeDocLeaf(src, lang string) *leaf {
-	l := rawLeaf(src, 0, len(src), false)
-	l.kind = kCode
-	l.whole = true
-	if lang != "text" {
-		l.lang = lang
-	}
-	if len(l.lines) == 0 {
-		l.lines = []line{{off: 0}}
-	}
-	if n := len(l.lines); n > 0 && len(src) > 0 && src[len(src)-1] == '\n' && l.lines[n-1].off+len(l.lines[n-1].text) < len(src) {
-		// The line after the last newline, for the caret.
-		l.lines = append(l.lines, line{off: len(src)})
-	}
-	l.start = l.lines[0].off
-	last := l.lines[len(l.lines)-1]
-	l.end = last.off + len(last.text)
 	return l
 }
 

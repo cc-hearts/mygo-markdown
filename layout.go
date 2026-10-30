@@ -11,81 +11,17 @@ import (
 	"github.com/CarlOpenLab/livemark/theme"
 )
 
-// look is how the document looks, resolved from the window's theme and the
-// editor's options as a frame builds.
-type look struct {
-	dark bool
-	// size is the body text's, lh its line height as a multiple of it.
-	size, lh   float32
-	font, mono string
-	text       ui.Color
-	muted      ui.Color
-	accent     ui.Color
-	marker     ui.Color
-	codeBg     ui.Color
-	codeText   ui.Color
-	panel      ui.Color
-	border     ui.Color
-	quoteBar   ui.Color
-	selection  ui.Color
-	caret      ui.Color
-	markBg     ui.Color
-	code       *editor.Theme
-}
+// baseSize returns the size of the body text, the font-size of the
+// document's root style.
+func (e *Editor) baseSize() float32 { return e.rootStyle().FontSize }
 
-// lookKey is what of the look the shaped leaves depend on.
-type lookKey struct {
-	dark       bool
-	size, lh   float32
-	font, mono string
-	text       ui.Color
-	accent     ui.Color
-}
-
-func (lk *look) key() lookKey {
-	return lookKey{dark: lk.dark, size: lk.size, lh: lk.lh, font: lk.font, mono: lk.mono, text: lk.text, accent: lk.accent}
-}
-
-// setLook resolves the look from the theme and the options.
-func (e *Editor) setLook(t *ui.Theme) {
-	lk := &e.lk
-	lk.dark = t.Dark
-	lk.size = e.opts.FontSize
-	if lk.size <= 0 {
-		lk.size = 16
+// baseLine returns the body's line height as a multiple of its size, or
+// the font's own when the theme sets none.
+func (e *Editor) baseLine() float32 {
+	if lh := e.rootStyle().LineHeight; lh > 0 {
+		return lh
 	}
-	lk.lh = e.opts.LineHeight
-	if lk.lh <= 0 {
-		lk.lh = 1.75
-	}
-	lk.font = e.opts.Font
-	if lk.font == "" {
-		lk.font = t.Font
-	}
-	lk.mono = e.opts.MonoFont
-	if lk.mono == "" {
-		lk.mono = "monospace"
-	}
-	lk.text = t.Text
-	lk.muted = t.TextMuted
-	lk.accent = t.Accent
-	lk.marker = t.TextMuted.Alpha(0.7)
-	lk.border = t.Border
-	lk.selection = t.Selection
-	lk.caret = t.Accent
-	if t.Dark {
-		lk.codeBg = ui.RGBA(255, 255, 255, 0.08)
-		lk.panel = ui.RGBA(255, 255, 255, 0.045)
-		lk.codeText = ui.Hex("#e4a3a3")
-		lk.quoteBar = ui.RGBA(255, 255, 255, 0.16)
-		lk.markBg = ui.RGBA(250, 204, 21, 0.32)
-	} else {
-		lk.codeBg = ui.RGBA(0, 0, 0, 0.055)
-		lk.panel = ui.Hex("#f6f7f9")
-		lk.codeText = ui.Hex("#c7254e")
-		lk.quoteBar = ui.RGBA(0, 0, 0, 0.12)
-		lk.markBg = ui.RGBA(250, 204, 21, 0.45)
-	}
+	return 1.75
 }
 
 // leafView is a leaf as the editor shows it: its display, laid out, and
@@ -134,7 +70,6 @@ type viewKey struct {
 	compose   string
 	composeAt int
 	text      string
-	look      lookKey
 	styleGen  uint64
 	styleID   uint64
 	assets    uint64
@@ -197,7 +132,6 @@ func (e *Editor) viewWith(l *leaf, width float32, header bool, align parser.Alig
 		flags:    leafFlags(l, header),
 		width:    width,
 		reveal:   reveal,
-		look:     e.lk.key(),
 		styleGen: e.styleGen,
 		styleID:  e.leafStyleID(l),
 		assets:   e.assetGen.Load(),
@@ -266,7 +200,7 @@ func (e *Editor) textFont(l *leaf) ui.Font {
 func (e *Editor) textView(l *leaf, width float32, at int, withCompose, header bool, align parser.Align) *leafView {
 	f := e.textFont(l)
 	b := e.newBuilder(l, at, withCompose, f.Size, width)
-	st := istyle{node: e.textNode(l)}
+	st := e.textNode(l)
 	switch {
 	case l.pending || l.kind == kPhantom || l.id < 0:
 		b.textRun(l.start, l.end, st)
@@ -346,15 +280,7 @@ func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *lea
 	inner := max(width-padL-padR, 40)
 	b := e.newBuilder(l, at, withCompose, f.Size, inner)
 	caretIn := at >= 0
-	if l.whole {
-		padL, padR, padT, padB = 0, 0, 0, 0
-		inner = max(width, 40)
-		b.width = inner
-	}
-	v := &leafView{style: cs, panel: !l.whole, tx: padL, ty: padT, label: l.lang}
-	if l.whole {
-		v.label = ""
-	}
+	v := &leafView{style: cs, panel: true, tx: padL, ty: padT, label: l.lang}
 	if l.fenced {
 		v.info = e.styleNode(l).Pseudo("info", 0)
 	}
@@ -446,7 +372,7 @@ func (e *Editor) mathView(l *leaf, width float32, at int, withCompose bool) *lea
 	v := e.linesView(l, width, at, withCompose, true)
 	v.reveal = true
 	if obj != nil {
-		gap := e.lk.size * 0.6
+		gap := e.baseSize() * 0.6
 		v.block = obj
 		v.bx, v.by = (width-obj.w)/2, v.h+gap
 		v.h += obj.h + 2*gap
@@ -464,7 +390,7 @@ func (e *Editor) htmlView(l *leaf, width float32, at int, withCompose bool) *lea
 			return &leafView{style: cs, block: obj, bx: (width - obj.w) / 2, h: obj.h}
 		}
 		v := e.linesView(l, width, at, withCompose, false)
-		gap := e.lk.size * 0.5
+		gap := e.baseSize() * 0.5
 		v.block, v.bx, v.by = obj, (width-obj.w)/2, v.h+gap
 		v.h += obj.h + gap
 		return v
@@ -542,7 +468,7 @@ func (e *Editor) indentOf(conts []cont) float32 {
 func (e *Editor) margins(l *leaf) (top, bottom float32) {
 	if l.kind == kHeading && l.pending {
 		// A heading being typed is still text.
-		s := e.lk.size
+		s := e.baseSize()
 		return s * 0.7, s * 0.7
 	}
 	c := e.leafStyle(l)
@@ -580,7 +506,9 @@ func (e *Editor) layoutDoc(x, width float32) {
 		if prev == nil {
 			top = 0
 		} else if tightAfter(prev, l) {
-			top, prevBottom = e.lk.size*0.2, 0
+			// The blocks of a tight list's item follow each other closely:
+			// their own top margin, not the room the one before leaves.
+			prevBottom = 0
 		}
 		y += max(top, prevBottom)
 		l.y = y
@@ -613,7 +541,7 @@ func (e *Editor) layoutTable(l *leaf) {
 		}
 	}
 	total := float32(0)
-	minW := e.lk.size * 3
+	minW := e.baseSize() * 3
 	for c := range natural {
 		natural[c] = max(natural[c], minW)
 		total += natural[c]
@@ -633,7 +561,7 @@ func (e *Editor) layoutTable(l *leaf) {
 	}
 	g.rowY = make([]float32, len(t.rows)+1)
 	for r, row := range t.rows {
-		h := e.lk.size * e.lk.lh
+		h := e.baseSize() * e.baseLine()
 		padT, padB := float32(0), float32(0)
 		for c, cell := range row {
 			if c >= cols {

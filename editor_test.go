@@ -23,7 +23,6 @@ func newHarness(t *testing.T, src string) *harness {
 	t.Helper()
 	h := &harness{t: t}
 	h.e = New(src, Options{
-		FontSize:    16,
 		Placeholder: "开始写作…",
 		ReadClipboard: func() transfer.Data {
 			return h.clip
@@ -354,8 +353,8 @@ func TestCopyPaste(t *testing.T) {
 func TestTaskToggleByClick(t *testing.T) {
 	h := newHarness(t, "- [ ] todo")
 	l := h.e.leaves[0]
-	x := h.e.colX + h.e.indentOf(l.conts) - h.e.lk.size*0.9
-	y := l.y + h.e.lk.size*0.8
+	x := h.e.colX + h.e.indentOf(l.conts) - h.e.baseSize()*0.9
+	y := l.y + h.e.baseSize()*0.8
 	h.tt.ClickAt(x, y+0)
 	h.frame()
 	h.want("- [x] todo")

@@ -44,14 +44,10 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 		st := e.styledLeaf(l)
 		for k, c := range l.conts {
 			cs := st.contStyle[k]
-			if c.kind == cQuote {
+			if c.kind == cQuote && cs.Border[3].Width > 0 {
 				b := bars[c.id]
 				if b == nil {
-					bw := cs.Border[3].Width
-					if bw <= 0 {
-						bw = 3
-					}
-					b = &bar{x: x, y0: l.y, y1: l.y + l.h, w: bw, color: uiColor(cs.Border[3].Color)}
+					b = &bar{x: x, y0: l.y, y1: l.y + l.h, w: cs.Border[3].Width, color: uiColor(cs.Border[3].Color)}
 					bars[c.id] = b
 					order = append(order, c.id)
 				}
@@ -139,7 +135,7 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 			e.fillRange(p, u, v, a, z, lx, ly, sel)
 		}
 		if v.diagram == nil {
-			p.TextLayout(v.layout, lx, ly, e.lk.text)
+			p.TextLayout(v.layout, lx, ly, uiColor(e.rootStyle().Color))
 		}
 		e.paintObjects(p, v, lx, ly)
 	} else if a != z && a <= leafLo(u) && z >= u.end {
@@ -156,7 +152,7 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 		sp := e.styleSpan(v.info)
 		sp.Text = v.label
 		w, _ := p.MeasureText(0, sp)
-		p.RichText(x+u.w-w-e.lk.size*0.6, y+e.lk.size*0.35, 0, sp)
+		p.RichText(x+u.w-w-e.baseSize()*0.6, y+e.baseSize()*0.35, 0, sp)
 	}
 }
 
@@ -227,15 +223,25 @@ func (e *Editor) paintObject(p *ui.Painter, o *object, r ui.Rect) {
 		p.Image(o.bmp, r, ui.Contain)
 		return
 	}
-	p.Fill(r, e.lk.panel, 6)
-	p.Stroke(r, e.lk.border, 6, 1)
+	cs := o.style
+	if cs == nil {
+		cs = e.rootStyle()
+	}
+	bg := cs.TextBackground
+	if bg.A == 0 {
+		bg = cs.Background
+	}
+	p.Fill(r, uiColor(bg), cs.Radius)
+	if b := cs.Border[0]; b.Width > 0 {
+		p.Stroke(r, uiColor(b.Color), cs.Radius, b.Width)
+	}
 	label := "🖼 " + o.alt
 	if o.alt == "" {
 		label = "🖼 图片"
 	}
-	sp := ui.Span{Text: label, Size: e.lk.size * 0.8, Color: e.lk.muted}
+	sp := ui.Span{Text: label, Font: e.pickFont(cs.FontFamily), Size: cs.FontSize, Color: uiColor(cs.Color)}
 	w, h := p.MeasureText(r.W-16, sp)
-	p.Clip(r, 6, func() {
+	p.Clip(r, cs.Radius, func() {
 		p.RichText(r.X+max((r.W-w)/2, 8), r.Y+(r.H-h)/2, r.W-16, sp)
 	})
 }
@@ -246,7 +252,7 @@ func (e *Editor) paintMarkers(p *ui.Painter, l *leaf, ox, oy float32) {
 	if len(l.firstOf) == 0 {
 		return
 	}
-	baseline := l.y + e.lk.size*1.1
+	baseline := l.y + e.baseSize()*1.1
 	if v := l.view; v != nil && v.layout != nil {
 		if lines := v.layout.Lines(); len(lines) > 0 {
 			baseline = l.y + v.ty + lines[0].Baseline
@@ -357,7 +363,8 @@ func (e *Editor) paintTable(p *ui.Painter, l *leaf, ox, oy float32, t *ui.Theme)
 	line := uiColor(cs.Border[0].Color)
 	lw := cs.Border[0].Width
 	if lw <= 0 {
-		lw = 1
+		// The theme gives the table no border: no grid.
+		return
 	}
 	for _, ry := range g.rowY {
 		p.Fill(ui.Rect{X: x, Y: y + ry - lw/2, W: g.w, H: lw}, line, 0)
@@ -390,7 +397,7 @@ func (e *Editor) paintCaret(p *ui.Painter, ox, oy float32) {
 	h := r.H
 	col := uiColor(e.rootStyle().CaretColor)
 	if col.A == 0 {
-		col = e.lk.caret
+		col = uiColor(e.rootStyle().Color)
 	}
 	p.Fill(ui.Rect{X: ox + r.X - 0.75, Y: oy + r.Y, W: 1.75, H: h}, col, 0.5)
 }

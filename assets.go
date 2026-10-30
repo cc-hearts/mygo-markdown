@@ -20,7 +20,7 @@ func (e *Editor) mathObject(tex string, size float32, display bool) *object {
 	if display {
 		size *= 1.15
 	}
-	bmp, baseline := mdoc.RenderMathBaseline(tex, float64(size), e.lk.dark)
+	bmp, baseline := mdoc.RenderMathBaseline(tex, float64(size), e.dark)
 	if bmp == nil {
 		return nil
 	}
@@ -37,7 +37,7 @@ func (e *Editor) mathBlockObject(tex string, width float32) *object {
 	if tex == "" {
 		return nil
 	}
-	bmp := mdoc.RenderMath(tex, float64(e.lk.size*1.2), e.lk.dark)
+	bmp := mdoc.RenderMath(tex, float64(e.baseSize()*1.2), e.dark)
 	if bmp == nil {
 		return nil
 	}
@@ -58,7 +58,7 @@ func (e *Editor) imageObject(dest, alt string, width float32, alone bool) *objec
 	obj := &object{bmp: bmp, alt: alt, block: alone}
 	if bmp == nil {
 		obj.w = min(max(width, 80), 260)
-		obj.h = e.lk.size * 2.4
+		obj.h = e.baseSize() * 2.4
 		obj.descent = obj.h * 0.25
 		return obj
 	}
