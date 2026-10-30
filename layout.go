@@ -467,9 +467,9 @@ func (e *Editor) indentOf(conts []cont) float32 {
 // margins returns the room above and below a leaf, from its theme style.
 func (e *Editor) margins(l *leaf) (top, bottom float32) {
 	if l.kind == kHeading && l.pending {
-		// A heading being typed is still text.
-		s := e.baseSize()
-		return s * 0.7, s * 0.7
+		// A heading being typed is still text: it has a paragraph's room.
+		c := e.res.Root().Child(theme.Element{Type: "paragraph"}).Style()
+		return c.Margin.Top, c.Margin.Bottom
 	}
 	c := e.leafStyle(l)
 	return c.Margin.Top, c.Margin.Bottom

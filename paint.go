@@ -319,9 +319,6 @@ func (e *Editor) paintItemMarker(p *ui.Painter, c cont, item *theme.Node, x, bas
 		if c.task == parser.Checked {
 			p.Fill(r, uiColor(cs.Background), cs.Radius)
 			col := uiColor(cs.Color)
-			if col.A == 0 {
-				col = ui.RGB(255, 255, 255)
-			}
 			path := ui.Path{}
 			path.MoveTo(r.X+r.W*0.24, r.Y+r.H*0.52)
 			path.LineTo(r.X+r.W*0.43, r.Y+r.H*0.7)
