@@ -22,13 +22,13 @@ type harness struct {
 func newHarness(t *testing.T, src string) *harness {
 	t.Helper()
 	h := &harness{t: t}
-	h.e = New(src, Options{
-		Placeholder: "开始写作…",
-		ReadClipboard: func() transfer.Data {
-			return h.clip
-		},
-		WriteClipboard: func(d transfer.Data) { h.clip = d },
-	})
+	opts := testOptions()
+	opts.Placeholder = "开始写作…"
+	opts.ReadClipboard = func() transfer.Data {
+		return h.clip
+	}
+	opts.WriteClipboard = func(d transfer.Data) { h.clip = d }
+	h.e = New(src, opts)
 	h.tt = ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			h.e.View(c).Grow(1)

@@ -1,4 +1,4 @@
-package mdoc
+package math
 
 import "testing"
 
@@ -12,7 +12,7 @@ func TestCasesAndAligned(t *testing.T) {
 		if !ok || len(spec.rows) != 2 {
 			t.Fatalf("parse %q = %+v", expr, spec)
 		}
-		if bmp := mathBitmap(expr, 18, false); bmp == nil {
+		if bmp := mathBitmap(expr, 18, black); bmp == nil {
 			t.Fatalf("bitmap for %q is nil", expr)
 		}
 	}

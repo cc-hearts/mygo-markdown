@@ -163,7 +163,7 @@ func TestSyntaxConsistency(t *testing.T) {
 		"**注意：**内容\n",
 	}
 	for _, src := range corpus {
-		e := New(src, Options{})
+		e := New(src, testOptions())
 		tr := syntax.Parse(src)
 		// The leaves the editor lays out, table cells included.
 		var leaves []*leaf

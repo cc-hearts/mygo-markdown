@@ -1,9 +1,11 @@
-package mdoc
+package mermaid
 
 import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/CarlOpenLab/livemark/render"
 )
 
 // mermaidGraph is the subset of Mermaid flowcharts Muse draws natively:
@@ -197,7 +199,7 @@ func (g *mermaidGraph) height() float32 {
 }
 
 // draw paints the diagram in r.
-func (g *mermaidGraph) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
+func (g *mermaidGraph) draw(p *ui.Painter, r ui.Rect, s render.DiagramStyle) {
 	maxLevel := 0
 	for _, n := range g.nodes {
 		if n.level > maxLevel {
@@ -210,13 +212,13 @@ func (g *mermaidGraph) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 	}
 	g.layout(r)
 	for _, e := range g.edges {
-		g.drawEdge(p, e, t)
+		g.drawEdge(p, e, s)
 	}
 	for _, n := range g.nodes {
 		rect := n.rect
-		p.Fill(rect, t.Surface, 7)
-		p.Stroke(rect, t.Border, 7, 1)
-		sp := ui.Span{Text: n.label, Size: 12.5, Color: t.Text}
+		p.Fill(rect, s.Fill, 7)
+		p.Stroke(rect, s.Line, 7, 1)
+		sp := ui.Span{Text: n.label, Size: 12.5, Color: s.Text}
 		tw, th := p.MeasureText(rect.W-16, sp)
 		p.RichText(rect.X+(rect.W-tw)/2, rect.Y+(rect.H-th)/2, rect.W-16, sp)
 	}
@@ -278,9 +280,9 @@ func (g *mermaidGraph) layout(r ui.Rect) {
 	}
 }
 
-func (g *mermaidGraph) drawEdge(p *ui.Painter, e mermaidEdge, t *ui.Theme) {
+func (g *mermaidGraph) drawEdge(p *ui.Painter, e mermaidEdge, s render.DiagramStyle) {
 	a, b := e.from.rect, e.to.rect
-	color := t.TextMuted
+	color := s.Muted
 	// Back edges take a route outside the column so they do not overlap the
 	// forward edge and its label.
 	if g.horizontal() {
@@ -297,7 +299,7 @@ func (g *mermaidGraph) drawEdge(p *ui.Painter, e mermaidEdge, t *ui.Theme) {
 			p.Line(x2, y2, x2-4, y2+6, 1.4, color)
 			p.Line(x2, y2, x2+4, y2+6, 1.4, color)
 			if e.label != "" {
-				sp := ui.Span{Text: e.label, Size: 10.5, Color: t.TextMuted}
+				sp := ui.Span{Text: e.label, Size: 10.5, Color: s.Muted}
 				tw, _ := p.MeasureText(0, sp)
 				p.RichText((x0+x2)/2-tw/2, mid+4, 0, sp)
 			}
@@ -317,7 +319,7 @@ func (g *mermaidGraph) drawEdge(p *ui.Painter, e mermaidEdge, t *ui.Theme) {
 			p.Line(x2, y2, x2+6, y2-4, 1.4, color)
 			p.Line(x2, y2, x2+6, y2+4, 1.4, color)
 			if e.label != "" {
-				sp := ui.Span{Text: e.label, Size: 10.5, Color: t.TextMuted}
+				sp := ui.Span{Text: e.label, Size: 10.5, Color: s.Muted}
 				p.RichText(mid+4, (y0+y2)/2, 0, sp)
 			}
 			return
@@ -349,7 +351,7 @@ func (g *mermaidGraph) drawEdge(p *ui.Painter, e mermaidEdge, t *ui.Theme) {
 		p.Line(x2, y2, x2+4, y2+6, 1.4, color)
 	}
 	if e.label != "" {
-		sp := ui.Span{Text: e.label, Size: 10.5, Color: t.TextMuted}
+		sp := ui.Span{Text: e.label, Size: 10.5, Color: s.Muted}
 		tw, th := p.MeasureText(0, sp)
 		p.RichText((x1+x2)/2-tw/2, (y1+y2)/2-th/2-4, 0, sp)
 	}

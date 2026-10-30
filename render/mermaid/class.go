@@ -1,9 +1,11 @@
-package mdoc
+package mermaid
 
 import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/CarlOpenLab/livemark/render"
 )
 
 // classGraph is a native classDiagram subset: classes with members,
@@ -248,25 +250,25 @@ func (g *classGraph) height() float32 {
 }
 
 // draw paints the diagram in r.
-func (g *classGraph) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
+func (g *classGraph) draw(p *ui.Painter, r ui.Rect, s render.DiagramStyle) {
 	g.layout(r)
 	for _, rel := range g.relations {
-		drawClassRel(p, t, rel)
+		drawClassRel(p, s, rel)
 	}
 	for _, c := range g.classes {
 		box := c.rect
-		p.Fill(box, t.Surface, 6)
-		p.Stroke(box, t.Border, 6, 1)
-		name := ui.Span{Text: c.name, Size: 12.5, Weight: 650, Color: t.Text}
+		p.Fill(box, s.Fill, 6)
+		p.Stroke(box, s.Line, 6, 1)
+		name := ui.Span{Text: c.name, Size: 12.5, Weight: 650, Color: s.Text}
 		nw, _ := p.MeasureText(box.W-16, name)
 		p.RichText(box.X+(box.W-nw)/2, box.Y+7, box.W-16, name)
 		if len(c.members) == 0 {
 			continue
 		}
-		p.Line(box.X, box.Y+30, box.X+box.W, box.Y+30, 1, t.Border)
+		p.Line(box.X, box.Y+30, box.X+box.W, box.Y+30, 1, s.Line)
 		y := box.Y + 35
 		for _, m := range c.members {
-			sp := ui.Span{Text: m, Size: 10.5, Color: t.TextMuted}
+			sp := ui.Span{Text: m, Size: 10.5, Color: s.Muted}
 			p.RichText(box.X+9, y, box.W-18, sp)
 			y += 17
 		}
@@ -304,7 +306,7 @@ func (g *classGraph) layout(r ui.Rect) {
 	}
 }
 
-func drawClassRel(p *ui.Painter, t *ui.Theme, rel classRel) {
+func drawClassRel(p *ui.Painter, s render.DiagramStyle, rel classRel) {
 	a, b := rel.from.rect, rel.to.rect
 	x1, y1 := a.X+a.W/2, a.Y+a.H
 	x2, y2 := b.X+b.W/2, b.Y
@@ -315,16 +317,16 @@ func drawClassRel(p *ui.Painter, t *ui.Theme, rel classRel) {
 		x2 = b.X + b.W
 		y2 = b.Y + b.H/2
 		mid := maxF(x1, x2) + 26
-		p.Line(x1, y1, mid, y1, 1.3, t.TextMuted)
-		p.Line(mid, y1, mid, y2, 1.3, t.TextMuted)
-		p.Line(mid, y2, x2, y2, 1.3, t.TextMuted)
+		p.Line(x1, y1, mid, y1, 1.3, s.Muted)
+		p.Line(mid, y1, mid, y2, 1.3, s.Muted)
+		p.Line(mid, y2, x2, y2, 1.3, s.Muted)
 		return
 	}
 	dashed := rel.kind == "depend" || rel.kind == "realize"
 	if dashed {
-		drawDashedLine(p, x1, y1, x2, y2, t.TextMuted)
+		drawDashedLine(p, x1, y1, x2, y2, s.Muted)
 	} else {
-		p.Line(x1, y1, x2, y2, 1.3, t.TextMuted)
+		p.Line(x1, y1, x2, y2, 1.3, s.Muted)
 	}
 	switch rel.kind {
 	case "inherit", "realize":
@@ -334,8 +336,8 @@ func drawClassRel(p *ui.Painter, t *ui.Theme, rel classRel) {
 		path.LineTo(x1-6, y1+11)
 		path.LineTo(x1+6, y1+11)
 		path.Close()
-		p.FillPath(&path, t.Background)
-		p.StrokePath(&path, 1.2, t.TextMuted)
+		p.FillPath(&path, s.Background)
+		p.StrokePath(&path, 1.2, s.Muted)
 	case "compose", "aggregate":
 		// Diamond at the owner end.
 		path := ui.Path{}
@@ -345,17 +347,17 @@ func drawClassRel(p *ui.Painter, t *ui.Theme, rel classRel) {
 		path.LineTo(x1+6, y1-11)
 		path.Close()
 		if rel.kind == "compose" {
-			p.FillPath(&path, t.TextMuted)
+			p.FillPath(&path, s.Muted)
 		} else {
-			p.FillPath(&path, t.Background)
-			p.StrokePath(&path, 1.2, t.TextMuted)
+			p.FillPath(&path, s.Background)
+			p.StrokePath(&path, 1.2, s.Muted)
 		}
 	default:
-		p.Line(x2, y2, x2-5, y2+8, 1.2, t.TextMuted)
-		p.Line(x2, y2, x2+5, y2+8, 1.2, t.TextMuted)
+		p.Line(x2, y2, x2-5, y2+8, 1.2, s.Muted)
+		p.Line(x2, y2, x2+5, y2+8, 1.2, s.Muted)
 	}
 	if rel.label != "" {
-		sp := ui.Span{Text: rel.label, Size: 10, Color: t.TextMuted}
+		sp := ui.Span{Text: rel.label, Size: 10, Color: s.Muted}
 		tw, _ := p.MeasureText(0, sp)
 		p.RichText((x1+x2)/2-tw/2, (y1+y2)/2-12, 0, sp)
 	}

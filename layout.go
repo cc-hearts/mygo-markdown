@@ -7,7 +7,7 @@ import (
 	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown/parser"
 
-	"github.com/CarlOpenLab/livemark/internal/mdoc"
+	"github.com/CarlOpenLab/livemark/render"
 	"github.com/CarlOpenLab/livemark/theme"
 )
 
@@ -50,8 +50,8 @@ type leafView struct {
 	natural float32
 	// font is the text's, which the caret is as tall as.
 	font ui.Font
-	// diagram is a Mermaid diagram drawn instead of its code.
-	diagram *mdoc.Diagram
+	// diagram is a diagram drawn instead of a code block's code.
+	diagram render.Diagram
 	// style is the theme's computed style of the leaf's block, and info
 	// that of a code block's info string.
 	style *theme.Computed
@@ -330,13 +330,28 @@ func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *lea
 	v.font = f
 	_, th := v.layout.Size()
 	v.h = th + padT + padB
-	if !caretIn && strings.EqualFold(l.lang, "mermaid") {
-		if d, ok := mdoc.ParseDiagram(e.codeText(l)); ok {
-			v.diagram = &d
+	if !caretIn {
+		if d, ok := e.diagramOf(l); ok {
+			v.diagram = d
 			v.h = d.Height(width) + padT + padB
 		}
 	}
 	return v
+}
+
+// diagramOf returns the diagram a code block shows instead of its code,
+// from the first renderer that knows its language.
+func (e *Editor) diagramOf(l *leaf) (render.Diagram, bool) {
+	code := e.codeText(l)
+	for _, r := range e.opts.Diagrams {
+		if r == nil {
+			continue
+		}
+		if d, ok := r.Diagram(l.lang, code); ok {
+			return d, true
+		}
+	}
+	return nil, false
 }
 
 // codeText returns the text of a code or math leaf's lines.
@@ -351,13 +366,21 @@ func (e *Editor) codeText(l *leaf) string {
 	return sb.String()
 }
 
+// mathColor returns the ink of a math leaf's formula: the color of its
+// math element, without :revealed, which colors its source instead.
+func (e *Editor) mathColor(l *leaf) theme.Color {
+	el := e.leafElement(l)
+	el.States &^= theme.Revealed
+	return e.containerNode(l).Child(el).Style().Color
+}
+
 // mathView lays out a block of math: typeset, or its TeX above the
 // typeset formula while the caret is in it.
 func (e *Editor) mathView(l *leaf, width float32, at int, withCompose bool) *leafView {
 	cs := e.leafStyle(l)
 	caretIn := at >= 0
 	tex := e.codeText(l)
-	obj := e.mathBlockObject(tex, width)
+	obj := e.mathBlockObject(tex, width, e.baseSize()*1.2, uiColor(e.mathColor(l)))
 	if !caretIn {
 		if obj == nil {
 			// Nothing to typeset, or TeX the typesetter cannot read: its

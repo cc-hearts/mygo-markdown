@@ -1,9 +1,11 @@
-package mdoc
+package mermaid
 
 import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/CarlOpenLab/livemark/render"
 )
 
 // seqGraph is a native sequenceDiagram subset: participants, messages,
@@ -146,20 +148,20 @@ func (g *seqGraph) height() float32 {
 }
 
 // draw paints the diagram in r.
-func (g *seqGraph) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
+func (g *seqGraph) draw(p *ui.Painter, r ui.Rect, s render.DiagramStyle) {
 	g.layout(r)
 	// Participant boxes and lifelines.
 	top := r.Y + 12
 	for _, part := range g.parts {
 		box := ui.Rect{X: part.x - part.w/2, Y: top, W: part.w, H: 30}
-		p.Fill(box, t.Surface, 6)
-		p.Stroke(box, t.Border, 6, 1)
-		sp := ui.Span{Text: part.label, Size: 12, Color: t.Text}
+		p.Fill(box, s.Fill, 6)
+		p.Stroke(box, s.Line, 6, 1)
+		sp := ui.Span{Text: part.label, Size: 12, Color: s.Text}
 		tw, th := p.MeasureText(box.W-12, sp)
 		p.RichText(box.X+(box.W-tw)/2, box.Y+(box.H-th)/2, box.W-12, sp)
 		// Dotted lifeline.
 		for y := box.Y + box.H + 6; y < r.Y+r.H-12; y += 7 {
-			p.Line(part.x, y, part.x, y+3, 1, t.Border)
+			p.Line(part.x, y, part.x, y+3, 1, s.Line)
 		}
 	}
 	y := top + 54
@@ -174,9 +176,9 @@ func (g *seqGraph) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 				x0, x1 = x1, x0
 			}
 			box := ui.Rect{X: x0 - 40, Y: y, W: x1 - x0 + 80, H: 28}
-			p.Fill(box, t.Surface, 5)
-			p.Stroke(box, t.Border, 5, 1)
-			sp := ui.Span{Text: e.text, Size: 10.5, Color: t.Text}
+			p.Fill(box, s.Fill, 5)
+			p.Stroke(box, s.Line, 5, 1)
+			sp := ui.Span{Text: e.text, Size: 10.5, Color: s.Text}
 			tw, th := p.MeasureText(box.W-12, sp)
 			p.RichText(box.X+(box.W-tw)/2, box.Y+(box.H-th)/2, box.W-12, sp)
 			y += 34
@@ -186,7 +188,7 @@ func (g *seqGraph) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 		if a == nil || b == nil {
 			continue
 		}
-		drawSeqMessage(p, t, a.x, b.x, y, e.text, e.dashed)
+		drawSeqMessage(p, s, a.x, b.x, y, e.text, e.dashed)
 		y += 42
 	}
 }
@@ -211,15 +213,15 @@ func (g *seqGraph) layout(r ui.Rect) {
 	}
 }
 
-func drawSeqMessage(p *ui.Painter, t *ui.Theme, x1, x2, y float32, text string, dashed bool) {
-	color := t.TextMuted
+func drawSeqMessage(p *ui.Painter, s render.DiagramStyle, x1, x2, y float32, text string, dashed bool) {
+	color := s.Muted
 	if x1 == x2 {
 		// Self message: a small loop.
 		p.Line(x1, y, x1+24, y, 1.3, color)
 		p.Line(x1+24, y, x1+24, y+10, 1.3, color)
 		p.Line(x2+11, y+10, x2, y+10, 1.3, color)
 		arrowRight(p, x2, y+10, color)
-		sp := ui.Span{Text: text, Size: 10.5, Color: t.Text}
+		sp := ui.Span{Text: text, Size: 10.5, Color: s.Text}
 		p.RichText(x1+30, y-14, 0, sp)
 		return
 	}
@@ -240,7 +242,7 @@ func drawSeqMessage(p *ui.Painter, t *ui.Theme, x1, x2, y float32, text string, 
 	} else {
 		arrowLeft(p, x2, y, color)
 	}
-	sp := ui.Span{Text: text, Size: 10.5, Color: t.Text}
+	sp := ui.Span{Text: text, Size: 10.5, Color: s.Text}
 	tw, _ := p.MeasureText(0, sp)
 	p.RichText((x1+x2)/2-tw/2, y-15, 0, sp)
 }

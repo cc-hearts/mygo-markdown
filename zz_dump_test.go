@@ -154,7 +154,7 @@ func dumpEditor(e *Editor) string {
 }
 
 func newDumpEditor(src string, focus bool) (*Editor, *ui.Tester) {
-	e := New(src, Options{})
+	e := New(src, testOptions())
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			e.View(c).Grow(1)
@@ -341,7 +341,7 @@ func TestZZShot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := New(string(b), Options{})
+	e := New(string(b), testOptions())
 	h := 2400
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {

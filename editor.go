@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo/ui/markdown/parser"
 
 	"github.com/CarlOpenLab/livemark/internal/parse"
+	"github.com/CarlOpenLab/livemark/render"
 	"github.com/CarlOpenLab/livemark/syntax"
 	"github.com/CarlOpenLab/livemark/theme"
 )
@@ -21,6 +22,14 @@ type Options struct {
 	// Theme is the document's theme, default.css when nil. Its styles
 	// decide every length and color the editor draws with.
 	Theme *theme.Theme
+	// Math typesets formulas; nil shows their source.
+	Math render.MathRenderer
+	// Diagrams draw the code blocks of the languages they know; empty
+	// shows their code.
+	Diagrams []render.DiagramRenderer
+	// LoadImage loads an image, calling onLoad when it has, from another
+	// goroutine; nil loads it from files, data: URLs and the web.
+	LoadImage func(src string, onLoad func()) *ui.Bitmap
 	// BaseDir resolves the relative paths of images.
 	BaseDir string
 	// Placeholder shows in an empty document.
@@ -79,9 +88,8 @@ type Editor struct {
 
 	hist history
 
-	// dark is the window's appearance, which formulas draw for; uiFont is
-	// its font, which the system font of the theme resolves to.
-	dark        bool
+	// uiFont is the window's font, which the system font of the theme
+	// resolves to.
 	uiFont      string
 	theme       *theme.Theme
 	res         *theme.Resolver
@@ -176,7 +184,7 @@ func New(src string, opts Options) *Editor {
 	// The window's theme comes with the first frame; until then, the light
 	// one, so that a document opened before it lays out.
 	lt := ui.LightTheme()
-	e.dark, e.uiFont = lt.Dark, lt.Font
+	e.uiFont = lt.Font
 	e.ensureResolver(lt)
 	e.SetSource(src)
 	return e
@@ -189,6 +197,9 @@ func (e *Editor) SetOptions(opts Options) {
 		e.theme = theme.New()
 	}
 	e.opts = opts
+	// Another theme, renderer or loader draws its objects anew.
+	e.assetGen.Add(1)
+	e.invalidate()
 }
 
 // Options returns the editor's options.

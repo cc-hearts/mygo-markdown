@@ -53,7 +53,7 @@ func (e *Editor) layoutIfNeeded() {
 // the user writes on.
 func (e *Editor) View(c *ui.Context) ui.Element {
 	t := c.Theme()
-	e.dark, e.uiFont = t.Dark, t.Font
+	e.uiFont = t.Font
 	e.ensureResolver(t)
 	e.frame++
 	e.services = c.Services()

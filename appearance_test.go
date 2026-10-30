@@ -239,7 +239,7 @@ func TestAppearanceBaseline(t *testing.T) {
 // newBaselineEditor lays the document out in a fixed window, focused with
 // the caret where the case says.
 func newBaselineEditor(c appearanceCase) (*Editor, *ui.Tester) {
-	e := New(c.src, Options{})
+	e := New(c.src, testOptions())
 	tt := ui.NewTester(func(c *ui.Context) {
 		ui.Column(c).Fill().Children(func() {
 			e.View(c).Grow(1)

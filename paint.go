@@ -147,7 +147,7 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 	}
 	if v.diagram != nil {
 		pad := v.style.Padding.Top
-		v.diagram.Draw(p, ui.Rect{X: x, Y: y + pad, W: u.w, H: u.h - 2*pad}, p.Theme())
+		v.diagram.Draw(p, ui.Rect{X: x, Y: y + pad, W: u.w, H: u.h - 2*pad}, e.diagramStyle(v.style))
 	}
 	if v.label != "" && !v.reveal && v.panel && v.info != nil {
 		sp := e.styleSpan(v.info)

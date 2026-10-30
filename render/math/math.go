@@ -1,4 +1,4 @@
-package mdoc
+package math
 
 import "strings"
 

@@ -1,4 +1,4 @@
-package mdoc
+package mermaid
 
 import (
 	"strconv"
@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/CarlOpenLab/livemark/render"
 )
 
 // ganttChart is a native Gantt subset: sections, dated tasks, after-id
@@ -247,10 +249,10 @@ func (g *ganttChart) height() float32 {
 }
 
 // draw paints the diagram in r.
-func (g *ganttChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
+func (g *ganttChart) draw(p *ui.Painter, r ui.Rect, s render.DiagramStyle) {
 	y := r.Y + 12
 	if g.title != "" {
-		sp := ui.Span{Text: g.title, Size: 13, Weight: 650, Color: t.Text}
+		sp := ui.Span{Text: g.title, Size: 13, Weight: 650, Color: s.Text}
 		p.RichText(r.X+16, y, 0, sp)
 		y += 24
 	}
@@ -270,9 +272,9 @@ func (g *ganttChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 	ticks := 5
 	for i := 0; i <= ticks; i++ {
 		x := timelineX + timelineW*float32(i)/float32(ticks)
-		p.Line(x, y, x, y+float32(len(g.rows))*26+4, 1, t.Border)
+		p.Line(x, y, x, y+float32(len(g.rows))*26+4, 1, s.Line)
 		label := g.start.Add(time.Duration(float64(days) * float64(i) / float64(ticks) * float64(24*time.Hour))).Format("01-02")
-		sp := ui.Span{Text: label, Size: 9.5, Color: t.TextMuted}
+		sp := ui.Span{Text: label, Size: 9.5, Color: s.Muted}
 		p.RichText(x+3, y-16, 0, sp)
 	}
 	y += 8
@@ -280,13 +282,13 @@ func (g *ganttChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 	rowY := y
 	for _, row := range g.rows {
 		if row.task == nil {
-			sp := ui.Span{Text: row.section, Size: 11, Weight: 650, Color: t.Text}
+			sp := ui.Span{Text: row.section, Size: 11, Weight: 650, Color: s.Text}
 			p.RichText(r.X+16, rowY+5, labelW-24, sp)
 			rowY += 26
 			continue
 		}
 		task := row.task
-		sp := ui.Span{Text: task.name, Size: 10.5, Color: t.Text}
+		sp := ui.Span{Text: task.name, Size: 10.5, Color: s.Text}
 		p.RichText(r.X+24, rowY+6, labelW-32, sp)
 		offset := float32(task.start.Sub(g.start).Hours() / 24)
 		x := timelineX + offset*pxPerDay
@@ -298,7 +300,7 @@ func (g *ganttChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 			path.LineTo(x+5, rowY+21)
 			path.LineTo(x, rowY+13)
 			path.Close()
-			p.FillPath(&path, t.TextMuted)
+			p.FillPath(&path, s.Muted)
 			rowY += 26
 			continue
 		}

@@ -465,16 +465,19 @@ func (b *builder) math(in *parser.Inline, st *theme.Node) {
 	}
 	cs, ce := min(in.Start+n, in.End), max(in.End-n, in.Start+n)
 	el := theme.Element{Type: "math", Classes: []string{"inline"}}
+	inner := child(st, el)
+	// The formula draws in math's own ink; :revealed colors its source.
+	color := uiColor(inner.Style().Color)
 	if b.revealed(in.Start, in.End) {
 		el.States |= theme.Revealed
-		inner := child(st, el)
+		inner = child(st, el)
 		b.marker(in.Start, cs, st, "math")
 		b.textRun(cs, min(ce, in.End), inner)
 		b.marker(min(ce, in.End), in.End, st, "math")
 		return
 	}
-	if obj := b.e.mathObject(in.Text, b.fontSize, in.Display); obj != nil {
-		b.atom(in.Start, in.End, "", child(st, el), obj)
+	if obj := b.e.mathObject(in.Text, b.fontSize, in.Display, color); obj != nil {
+		b.atom(in.Start, in.End, "", inner, obj)
 		return
 	}
 	el.States |= theme.Broken

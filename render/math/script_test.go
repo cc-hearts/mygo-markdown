@@ -1,4 +1,4 @@
-package mdoc
+package math
 
 import "testing"
 
@@ -19,7 +19,7 @@ func TestScriptComposition(t *testing.T) {
 
 func TestCasesFirstCell(t *testing.T) {
 	expr := `\begin{cases} x^2 & x>0 \\ -x & x\le 0 \end{cases}`
-	if bmp := mathBitmap(expr, 18, false); bmp == nil {
+	if bmp := mathBitmap(expr, 18, black); bmp == nil {
 		t.Fatal("cases bitmap nil")
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown/parser"
 
+	"github.com/CarlOpenLab/livemark/render"
 	"github.com/CarlOpenLab/livemark/theme"
 )
 
@@ -106,6 +107,21 @@ func (e *Editor) rootStyle() *theme.Computed { return e.res.Root().Style() }
 // as ::selection or ::placeholder, in states.
 func (e *Editor) pseudo(name string, states theme.States) *theme.Computed {
 	return e.res.Root().Pseudo(name, states)
+}
+
+// diagramStyle returns the style a diagram draws in: the text color and
+// size of its code block, and the theme's diagram variables.
+func (e *Editor) diagramStyle(c *theme.Computed) render.DiagramStyle {
+	root := e.rootStyle()
+	st := render.DiagramStyle{Text: uiColor(c.Color), FontSize: c.FontSize}
+	muted, _ := root.VarColor("--diagram-muted")
+	line, _ := root.VarColor("--diagram-line")
+	fill, _ := root.VarColor("--diagram-fill")
+	accent, _ := root.VarColor("--diagram-accent")
+	background, _ := root.VarColor("--ui-background")
+	st.Muted, st.Line, st.Fill = uiColor(muted), uiColor(line), uiColor(fill)
+	st.Accent, st.Background = uiColor(accent), uiColor(background)
+	return st
 }
 
 // pickFont returns the family of a computed list that the editor can use,

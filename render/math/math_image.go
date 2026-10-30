@@ -1,4 +1,4 @@
-package mdoc
+package math
 
 import (
 	"fmt"
@@ -39,16 +39,19 @@ var (
 	mathMu    sync.Mutex
 )
 
+// black is the ink of a formula rendered plain, as the tests check.
+var black = ui.RGB(0, 0, 0)
+
 // mathBitmap typesets a TeX expression with go-latex's engine (the same
-// family of MathJax/KaTeX-style layout used by Typora), then inverts it for
-// the dark theme. A cache keeps a formula from being re-rasterised each frame.
-func mathBitmap(expr string, size float64, dark bool) *ui.Bitmap {
-	return mathRendered(expr, size, dark).bmp
+// family of MathJax/KaTeX-style layout used by Typora), in color. A cache
+// keeps a formula from being re-rasterised each frame.
+func mathBitmap(expr string, size float64, color ui.Color) *ui.Bitmap {
+	return mathRendered(expr, size, color).bmp
 }
 
 // mathRendered is mathBitmap with the formula's baseline.
-func mathRendered(expr string, size float64, dark bool) *mathRender {
-	key := fmt.Sprintf("%s|%.1f|%v", expr, size, dark)
+func mathRendered(expr string, size float64, color ui.Color) *mathRender {
+	key := fmt.Sprintf("%s|%.1f|%02x%02x%02x%02x", expr, size, color.R, color.G, color.B, color.A)
 	if v, ok := mathCache.Load(key); ok {
 		return v.(*mathRender)
 	}
@@ -71,9 +74,7 @@ func mathRendered(expr string, size float64, dark bool) *mathRender {
 		img, r.baseline = ts.img, float32(ts.baseline)
 	}
 	if err == nil {
-		if dark {
-			img = invertImage(img)
-		}
+		img = tintImage(img, color)
 		r.bmp = ui.NewBitmap(img)
 	}
 	mathCache.Store(key, r)
@@ -180,35 +181,50 @@ func typesetTeX(expr string, size float64) (ts typeset, err error) {
 	return typeset{img: img, baseline: int(math.Round((h + dy) * s))}, nil
 }
 
-func invertImage(src image.Image) image.Image {
+// tintImage draws the black ink of src in c, over the alpha its glyphs
+// were rasterized with: the antialiased edges take the color properly,
+// premultiplied.
+func tintImage(src image.Image, c ui.Color) image.Image {
+	if c.R == 0 && c.G == 0 && c.B == 0 && c.A == 255 {
+		return src
+	}
 	b := src.Bounds()
 	dst := image.NewRGBA(b)
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			r, g, bl, a := src.At(x, y).RGBA()
+			_, _, _, a := src.At(x, y).RGBA()
 			if a == 0 {
 				continue
 			}
-			dst.Set(x, y, color.RGBA{
-				R: 255 - uint8(r>>8),
-				G: 255 - uint8(g>>8),
-				B: 255 - uint8(bl>>8),
-				A: uint8(a >> 8),
+			al := uint32(a>>8) * uint32(c.A) / 255
+			dst.SetRGBA(x, y, color.RGBA{
+				R: uint8(uint32(c.R) * al / 255),
+				G: uint8(uint32(c.G) * al / 255),
+				B: uint8(uint32(c.B) * al / 255),
+				A: uint8(al),
 			})
 		}
 	}
 	return dst
 }
 
-// RenderMath exposes the cached math raster to the native editor.
-func RenderMath(expr string, size float64, dark bool) *ui.Bitmap {
-	return mathBitmap(expr, size, dark)
-}
+// Renderer typesets formulas, keeping each rasterizer output by its TeX,
+// its size and its color.
+type Renderer struct{}
 
-// RenderMathBaseline is RenderMath with the formula's baseline, in pixels
-// of the bitmap from its top, which the text around an inline formula lines
-// up with.
-func RenderMathBaseline(expr string, size float64, dark bool) (*ui.Bitmap, float32) {
-	r := mathRendered(expr, size, dark)
-	return r.bmp, r.baseline
+// New returns a renderer of formulas.
+func New() *Renderer { return &Renderer{} }
+
+// Math typesets tex at size in color, as MathRenderer does. display tells
+// a formula on its own lines, which the caller sizes.
+func (r *Renderer) Math(tex string, display bool, size float32, color ui.Color) (*ui.Bitmap, float32, bool) {
+	tex = strings.TrimSpace(tex)
+	if tex == "" {
+		return nil, 0, false
+	}
+	m := mathRendered(tex, float64(size), color)
+	if m.bmp == nil {
+		return nil, 0, false
+	}
+	return m.bmp, m.baseline, true
 }

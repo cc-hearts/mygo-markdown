@@ -1,4 +1,4 @@
-package mdoc
+package mermaid
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/CarlOpenLab/livemark/render"
 )
 
 type pieChart struct {
@@ -67,11 +69,11 @@ var piePalette = []string{
 }
 
 // draw paints the diagram in r.
-func (g *pieChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
+func (g *pieChart) draw(p *ui.Painter, r ui.Rect, style render.DiagramStyle) {
 	titleH := float32(0)
 	if g.title != "" {
 		titleH = 26
-		sp := ui.Span{Text: g.title, Size: 13, Color: t.Text}
+		sp := ui.Span{Text: g.title, Size: 13, Color: style.Text}
 		tw, _ := p.MeasureText(0, sp)
 		p.RichText(r.X+(r.W-tw)/2, r.Y+8, 0, sp)
 	}
@@ -99,7 +101,7 @@ func (g *pieChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 		path.Close()
 		color := ui.Hex(piePalette[i%len(piePalette)])
 		p.FillPath(&path, color)
-		p.StrokePath(&path, 1.2, t.Background)
+		p.StrokePath(&path, 1.2, style.Background)
 		start += sweep
 	}
 
@@ -112,9 +114,9 @@ func (g *pieChart) draw(p *ui.Painter, r ui.Rect, t *ui.Theme) {
 		}
 		color := ui.Hex(piePalette[i%len(piePalette)])
 		p.Fill(ui.Rect{X: lx, Y: ly + 4, W: 10, H: 10}, color, 2)
-		sp := ui.Span{Text: s.label, Size: 11.5, Color: t.Text}
+		sp := ui.Span{Text: s.label, Size: 11.5, Color: style.Text}
 		p.RichText(lx+16, ly, 150, sp)
-		pct := ui.Span{Text: fmt.Sprintf("%.0f%%", s.value/total*100), Size: 11, Color: t.TextMuted}
+		pct := ui.Span{Text: fmt.Sprintf("%.0f%%", s.value/total*100), Size: 11, Color: style.Muted}
 		p.RichText(lx+180, ly, 60, pct)
 		ly += 24
 	}
