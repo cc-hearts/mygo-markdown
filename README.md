@@ -2,7 +2,7 @@
 
 A Typora-style WYSIWYG Markdown editor for [MyGo](https://mygo.egoist.dev/)'s native UI. The document is the rendering: the caret moves through headings, lists, quotes, tables, code and math as they read; inline syntax (`**`, `` ` ``, `[]()`, `$`) appears only around the caret, and block syntax never shows. Everything is drawn by Go on the GPU — no WebView.
 
-> **Status:** freshly forked from [Muse](https://github.com/CarlOpenLab/muse)'s editor, not yet reshaped. Next come a public syntax tree and themes written as CSS.
+> **Status:** freshly forked from [Muse](https://github.com/CarlOpenLab/muse)'s editor, not yet reshaped. Next come a public syntax tree and themes written as CSS: see [the design](docs/superpowers/specs/2026-10-30-livemark-design.md).
 
 ```go
 import "github.com/CarlOpenLab/livemark"
