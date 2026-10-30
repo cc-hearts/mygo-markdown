@@ -73,6 +73,8 @@ The loader page MyGo writes shows a spinner until the app is up. Every push to
 `main` builds it and publishes it to GitHub Pages
 (`.github/workflows/pages.yml`; with Pages set to deploy from GitHub Actions).
 
+Live: https://cc-hearts.github.io/mygo-markdown/
+
 ## Layout
 
 ```
