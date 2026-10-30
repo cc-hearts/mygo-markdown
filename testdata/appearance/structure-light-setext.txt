@@ -1,0 +1,35 @@
+column 40.00 640.00 35.20
+para [2,24) line=0 syntax=2 box=59.20,35.20,620.80,28.00 Q
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[2,15) d[0,13) "A quote with " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[17,21) d[13,17) "bold" font="" size=0.00 weight=700 italic=false underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[23,24) d[17,18) "." font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [31,46) line=27 syntax=31 box=78.40,74.40,601.60,28.00 Q Q
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[4,11) d[0,7) "Nested " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[12,17) d[7,12) "quote" font="" size=0.00 weight=0 italic=true underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[18,19) d[12,13) "." font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [50,60) line=48 syntax=50 box=68.00,113.60,612.00,28.00 I-
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[2,12) d[0,10) "bullet one" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [63,73) line=61 syntax=63 box=68.00,144.80,612.00,28.00 I-
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[2,12) d[0,10) "bullet two" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [78,84) line=74 syntax=78 box=96.00,176.00,584.00,28.00 I- I-
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[4,10) d[0,6) "nested" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [91,100) line=85 syntax=91 box=68.00,207.20,612.00,28.00 I- task=2
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[6,15) d[0,9) "task done" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=true color=71717aff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [107,116) line=101 syntax=107 box=68.00,238.40,612.00,28.00 I- task=1
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[6,15) d[0,9) "task open" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [121,132) line=118 syntax=121 box=68.00,269.60,612.00,28.00 I.3
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[3,14) d[0,11) "ordered one" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+para [136,147) line=133 syntax=136 box=68.00,300.80,612.00,28.00 I.4
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=28.00
+  text s[3,14) d[0,11) "ordered two" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+heading [149,155) line=149 syntax=149 box=40.00,351.20,640.00,45.36 setext h1
+  view panel=false reveal=false label="" tx=0.00 ty=0.00 h=45.36
+  text s[0,6) d[0,6) "Setext" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=18181bff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
