@@ -92,6 +92,11 @@ func (e *Editor) View(c *ui.Context) ui.Element {
 		el := ui.Box(c).FillWidth().Height(h).Focusable().FocusRing(false).Bind(&e.handle).
 			Cursor(e.cursor).Role(ui.RoleTextField).Label(label).
 			HandleTextInput(e).HandleInput(e.input).Draw(e.paint).ContextMenu(e.menu)
+		// The document's page color, as a theme's :root background-color
+		// gives it; a page transparent over the window leaves it to the app.
+		if bg := root.Background; bg.A > 0 {
+			el.Background(uiColor(bg))
+		}
 		if files := el.DroppedFiles(); len(files) > 0 {
 			if x, y, ok := el.PointerPosition(); ok {
 				e.setCaret(e.hitTest(x, y), false)

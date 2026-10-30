@@ -1,0 +1,145 @@
+/*
+ * 纸张：衬线正文、暖色、标题下划线、斑马纹表格。
+ *
+ * 它是主题作者范本：只写要改的东西，其余都来自 default.css。
+ * 每一条都用到了主题子集里的选择器和属性。
+ */
+
+:root {
+  --ink: #3a3226;
+  --muted: #8a7d66;
+  --rule: #ddd0b4;
+  --seal: #a5392b;
+  --panel: #f1e9d8;
+  --zebra: rgba(120, 96, 48, .06);
+
+  font-family: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "Times New Roman", serif;
+  font-size: 16.5px;
+  line-height: 1.9;
+  color: var(--ink);
+  background-color: #faf6ec;
+  caret-color: var(--seal);
+  max-width: 740px;
+  padding: 3rem 44px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e6ddc9;
+    --muted: #a99c82;
+    --rule: #4b4335;
+    --seal: #d97b6a;
+    --panel: #2e2a22;
+    --zebra: rgba(230, 221, 201, .04);
+
+    background-color: #221f1a;
+  }
+}
+
+paragraph { margin: .75rem 0; }
+
+/* 标题的下划线是一条 text-decoration：块边框只画顶边。 */
+heading {
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-decoration-thickness: 1px;
+}
+heading.h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration-thickness: 2px;
+  margin-top: 1.5rem;
+}
+heading.h2 { font-size: 1.5rem; color: var(--seal); margin-top: 1.6rem; }
+heading.h3 { font-size: 1.25rem; margin-top: 1.2rem; }
+heading.h4, heading.h5, heading.h6 { color: var(--muted); }
+
+quote {
+  border-left: 3px solid var(--seal);
+  padding-left: 1.1rem;
+  color: var(--muted);
+}
+
+list.tight > item > * { margin: .2rem 0 0; }
+item::marker { color: var(--seal); }
+item::checkbox {
+  width: .95rem;
+  height: .95rem;
+  margin-right: .45rem;
+  border: 1.3px solid var(--muted);
+  border-radius: 2px;
+}
+item.checked::checkbox {
+  border-style: none;
+  background-color: var(--seal);
+  color: #fff;
+}
+item.checked > paragraph:first-child {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+strong { color: var(--seal); }
+link { color: var(--seal); text-decoration: underline; }
+footnote-ref { color: var(--seal); }
+footnote::label { color: var(--seal); }
+
+mark { background-color: rgba(165, 57, 43, .18); }
+kbd {
+  font-family: monospace;
+  font-size: .85em;
+  color: var(--ink);
+  background-color: var(--panel);
+  border-radius: 3px;
+}
+math { color: var(--seal); }
+
+code { font-family: monospace; }
+code.inline {
+  font-size: .875em;
+  color: #7a3b2e;
+  background-color: var(--panel);
+  border-radius: 3px;
+}
+code.block {
+  font-size: .875em;
+  line-height: 1.65;
+  padding: .8rem 1rem;
+  margin: .9rem 0;
+  background-color: var(--panel);
+  border-radius: 4px;
+}
+code.block::info {
+  font-family: system-ui;
+  font-size: .7rem;
+  color: var(--muted);
+}
+
+table {
+  border: 1px solid var(--rule);
+  margin: .9rem 0;
+}
+row.header {
+  background-color: var(--panel);
+  color: var(--seal);
+}
+row.even { background-color: var(--zebra); }
+cell { padding: .45rem .7rem; }
+cell.header { font-weight: 700; }
+
+rule {
+  height: 1.2rem;
+  border-top: 1.5px solid var(--rule);
+  margin: .7rem 0;
+}
+
+image:broken {
+  font-size: .8rem;
+  color: var(--muted);
+  background-color: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+syntax { color: var(--muted); }
