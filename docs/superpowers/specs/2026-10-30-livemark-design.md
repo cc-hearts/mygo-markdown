@@ -1,6 +1,6 @@
 # livemark 设计：公开语法树 + CSS 主题
 
-- **状态**：草案，待评审
+- **状态**：已批准（2026-10-30），实施中
 - **日期**：2026-10-30
 - **仓库**：`github.com/CarlOpenLab/livemark`（本地 `~/Desktop/carl-github/livemark`）
 - **基线**：`fd86c85`——从 Muse `0c7dda1` 加当时工作区的改动 fork 出来的编辑器，构建与测试通过
@@ -15,7 +15,7 @@ v1 的目标：
 1. **公开语法树。** 新增 `syntax` 包，纯 Go，不依赖 UI。它给出编辑器眼中的文档结构：每个节点的类型、源码区间、语法符号区间。应用可以拿它做大纲、导出、统计；主题把节点类型当作选择器的词汇。
 2. **最终用户能写的 CSS 主题。** 主题是一个 CSS 子集文件，选择器作用在语法树上，经过层叠和继承得到每个节点的计算样式。编辑器只读计算样式，不再有任何写死的外观——默认外观本身就是一个 `default.css`。
 3. **默认外观和 fork 时完全一致。** 像素级对照测试保证重构不改变样子。
-4. **示例应用。** 没有 Muse 当第一个使用者，所以要有一个示例应用来验证组件，也给主题作者用：主题目录、切换、热重载、报错面板、节点路径检查器。
+4. **Playground。** 没有 Muse 当第一个使用者，所以要有一个 playground 来验证组件，也给主题作者用：边改 CSS 边看效果、报错面板、节点路径检查器。它像 MyGo 的文档预览一样，桌面能跑，也能编译成 WebAssembly 放在网页上。
 
 v1 不做：
 
@@ -35,16 +35,18 @@ livemark/
 ├── render/math/     可选：go-latex 公式
 ├── render/mermaid/  可选：Mermaid 子集
 ├── internal/parse/  解析准备与 MyGo 文档，syntax 和编辑器共用
-└── cmd/demo/        示例应用
+└── cmd/playground/  playground：桌面应用，也编译成 WebAssembly 放在网页上
 ```
 
 依赖方向：
 
-- `syntax` → `internal/parse` → MyGo 的 `ui/markdown/parser`（只依赖标准库）
+- `syntax` → `theme`、`internal/parse` → MyGo 的 `ui/markdown/parser`（只依赖标准库）
 - `theme` → 标准库
 - 根包 → `syntax`、`theme`、`internal/parse`、MyGo `ui`
 - `render/*` → 根包定义的接口，加各自的依赖（go-latex 只在 `render/math` 里）
-- `cmd/demo` → 全部
+- `cmd/playground` → 全部
+
+`Element`（选择器匹配的对象）由 `theme` 定义，`syntax` 用它描述节点。两个包都是纯 Go，所以 `syntax` 依赖 `theme` 不会多出任何外部依赖，也避免了两个同名类型。
 
 `theme` 刻意不依赖 MyGo：颜色用它自己的 `theme.Color`，窗口主题的颜色由编辑器以变量（`--ui-*`）的形式传进来，可用字体也由编辑器去查。这样没有窗口的工具（比如 CI 里校验主题文件）也能解析主题。
 
@@ -75,19 +77,15 @@ func (t *Tree) PathAt(off int) []Node // from the root to the innermost node at 
 type Node struct{ /* tree, index */ }
 
 func (n Node) Kind() Kind             // Paragraph, Heading, Strong, Syntax, …
-func (n Node) Element() Element       // what selectors match
+func (n Node) Element() theme.Element // what selectors match
 func (n Node) Range() Range           // its bytes in the source
 func (n Node) Syntax() []Range        // the bytes of its syntax: **, `, [, ](url), #, >, fences
 func (n Node) Parent() (Node, bool)
 func (n Node) Children() iter.Seq[Node]
 // By kind: Level, Lang, Info, Dest, Title, Task, Ordered, Start, Align, Label, Literal.
-
-type Element struct {
-	Type    string // "heading"
-	Classes []string // ["h2"]
-	Attrs   []Attr   // level="2"
-}
 ```
+
+`theme.Element` 包括类型（`"heading"`）、类（`["h2"]`）、属性（`level="2"`）和状态（`:revealed` 等）。
 
 - 一棵 `Tree` 是某一时刻源码的快照，只读。
 - 行内节点按块懒构建，以 MyGo 的 `Block.Revision()` 为键缓存，没改动的块不重建。
@@ -282,7 +280,7 @@ type Element struct {
   - 容器的内边距或边框会把内外两侧的外边距隔开，和 CSS 的外边距折叠规则一致。
   - 文档第一个块的上外边距、最后一个块的下外边距都不计。
 - **行内元素的背景、装饰线、`vertical-align`**：作用于它所有后代文字，和浏览器的视觉效果一致。后代自己设了背景的，用后代自己的。例如 `<mark>` 里的 `**加粗**` 照样有高亮底色。
-- **`syntax` 元素**：它是所属构造的兄弟，继承构造外面的样式（见 §3.3）。它不属于构造的后代，所以构造的背景不会延伸到它下面。
+- **`syntax` 元素**：它是所属构造的兄弟，继承构造外面的样式（见 §3.3）。它不接收外层传播下来的背景和装饰线：今天的语法符号就没有底色、下划线和删除线，哪怕它在 `<mark>` 或链接里。基线偏移照常传播，所以 `<sup>` 里的符号仍然跟着上移。
 - **`opacity`**：乘到元素自身和所有后代的文字色、背景色、边框色上。
 - **未聚焦时的选区**：编辑器失去焦点时，`::selection` 的颜色由引擎再乘 0.6，和今天一致。
 - **留在引擎里、不进 CSS 的绘制细节**：
@@ -332,9 +330,14 @@ type Env struct {
 	Vars map[string]string // --ui-*
 }
 func (t *Theme) Resolver(env Env) *Resolver
-// Resolver 根据父节点的计算样式和当前元素算出子节点的计算样式，结果由编辑器缓存。
+func (r *Resolver) Root() *Node            // document
+func (n *Node) Child(el Element) *Node     // 同一个元素只建一次（前缀树）
+func (n *Node) Style() *Computed           // 第一次用到时计算，之后缓存
+func (n *Node) Pseudo(name string, states States) *Computed
 // Computed 里所有值都已换算成 DIP 和颜色；font-family 保留候选列表，由编辑器挑选。
 ```
+
+样式路径的前缀树（§5.1）就在 `theme` 包里，编辑器只持有节点。这样缓存和失效逻辑可以脱离窗口单独测试。
 
 CSS 的分词器自己写（CSS Syntax Level 3 的子集），不引入第三方依赖。这样能精确掌握行列号和错误恢复。
 
@@ -350,11 +353,11 @@ CSS 的分词器自己写（CSS Syntax Level 3 的子集），不引入第三方
 document › quote › list.bullet.tight › item.task.checked › paragraph › strong › code.inline
 ```
 
-- **缓存**：编辑器把路径节点组织成一棵前缀树，相同的路径只建一次。每个节点的计算样式在第一次用到时算出并缓存。
-- **失效**：主题、深浅色或 `--ui-*` 变量任何一项变了，整棵树作废重建。
+- **缓存**：路径节点组织成一棵前缀树（`theme.Node`），相同的路径只建一次。每个节点的计算样式在第一次用到时算出并缓存。
+- **失效**：主题、深浅色或 `--ui-*` 变量任何一项变了，编辑器换一个新的 `Resolver`，旧树整棵丢弃。
 - **性能**：一个文档里不同的路径通常只有几十到几百条，打字时只会碰到已有的路径，所以不会因为算样式而变慢。
 - **代码层面的改动**：
-  - builder 里的 `st istyle` 换成 `st *styleNode`；
+  - builder 里的 `st istyle` 换成 `st *theme.Node`；
   - `b.span(st)` 换成 `st.span()`；
   - 语法符号从构造的父节点派生出 `syntax.<构造>` 节点；
   - leaf 的视图缓存键里，`lookKey` 换成"样式节点 + 主题版本"。
@@ -444,16 +447,27 @@ type DiagramStyle struct {
 - `DiagramStyle` 的来源：`Text` 取代码块计算样式里的 `color`，其余四个颜色取 `--diagram-*` 变量。
 - 根包不再依赖 go-latex：不用公式的应用，编译产物里没有它。
 
-## 6. 示例应用 `cmd/demo`
+## 6. Playground `cmd/playground`
 
-一个 MyGo 窗口，包括：
+做法和 MyGo 文档里的实时预览一样：同一个 Go 原生 UI 程序，桌面上用 `go run ./cmd/playground` 运行，浏览器里是编译成 WebAssembly 的静态页面。可行性已经验证：livemark 能编译到 `js/wasm`，一个最小应用 22 MB，gzip 后 5.8 MB。
 
-- **编辑器和顶栏**：主题下拉框（内置主题，加上 `themes/` 目录里的 `*.css`）、深浅色切换、打开文件。
-- **热重载**：保存主题文件后立刻生效。
-- **诊断面板**：列出当前主题的错误和警告，格式是"文件:行:列 消息"。
-- **节点路径检查器**：状态栏显示光标处的样式路径（如 `document › quote › paragraph › strong:revealed`），可以复制成选择器。主题作者不用猜该写什么。
-- **示例文档**：覆盖词汇表里的每一种元素。
-- **示例主题**：除了 `default.css`，再带一个风格明显不同的主题，暂定叫"纸张"：衬线正文、暖色、标题下划线、斑马纹表格。它用来证明 CSS 子集的表达力，也给主题作者当范本。
+界面：
+
+- **左栏：主题 CSS 编辑器**（MyGo `ui/editor`，CSS 高亮），上方一排预设主题（默认、纸张）。停止输入约 150ms 后重新解析，立刻生效。
+- **右栏：livemark 编辑器**，打开一篇覆盖词汇表里每一种元素的示例文档。
+- **底栏：诊断**。列出主题的错误和警告，点一条就跳到 CSS 编辑器里对应的行列。
+- **状态栏：节点路径检查器**。显示光标处的样式路径（如 `document › quote › paragraph › strong:revealed`），一键把它作为选择器插入 CSS 编辑器。主题作者不用猜该写什么。
+- **语法树面板**（可开关）：展示 `syntax.Tree` 的节点和区间，顺便演示公开的语法树 API。
+- **顶栏**：深浅色切换。
+- **桌面版独有**：打开、保存主题文件；文件在别处被改动时热重载。
+
+示例主题"纸张"：衬线正文、暖色、标题下划线、斑马纹表格。它用来证明 CSS 子集的表达力，也给主题作者当范本。
+
+网页版：
+
+- 构建脚本用 `GOOS=js GOARCH=wasm` 编译，配上 Go 自带的 `wasm_exec.js` 和一个加载页（加载时显示转圈），产物是静态文件。
+- GitHub Actions 发布到 GitHub Pages。
+- 浏览器里读不到本地文件，所以示例文档的图片用内嵌的 data: URL。浏览器也不告诉网页本机有哪些字体，`font-family` 在浏览器里如何回退，要在实现时按 MyGo 的 js 后端确认。
 
 ## 7. 测试
 
@@ -493,7 +507,8 @@ type DiagramStyle struct {
 | M3 | `theme` 包 | CSS 子集的解析、层叠、诊断完成，单测通过；`default.css` 写完，解析时没有警告 |
 | M4 | 编辑器改用主题 | `look`、`istyle` 和写死的常量全部移除；对照基线一致；性能达标 |
 | M5 | 拆分渲染器 | `render/math`、`render/mermaid` 独立；公式和图表颜色跟随主题；根包不依赖 go-latex |
-| M6 | 示例应用、示例主题、文档 | 热重载、诊断、检查器可用；README 和主题作者文档（词汇表、属性参考）完成 |
+| M6 | Playground、示例主题、文档 | 桌面版的 CSS 编辑、诊断、检查器、语法树面板、热重载可用；README 和主题作者文档（词汇表、属性参考）完成 |
+| M7 | 网页版 playground | `js/wasm` 构建脚本和加载页完成；GitHub Actions 发布到 GitHub Pages |
 
 **顺序约束**：
 
@@ -510,8 +525,11 @@ type DiagramStyle struct {
 - **MyGo 还在 0.x。**固定在 v0.7.3，升级单独做。
 - **与 Muse 分叉。**这一点已经接受。基线提交记录了来源，以后移植修复时按文件对比。
 
-## 10. 待定
+## 10. 已定事项
 
-1. 示例主题的风格。暂定"纸张"。
-2. 公开文档用什么语言。建议和 Muse 一样：README 以英文为主，另附中文版。
-3. 远程图片默认要不要加载。建议和今天一样默认加载，应用可以通过 `LoadImage` 换掉加载器、关闭联网。
+评审时（2026-10-30）定下来的：
+
+1. 示例主题用"纸张"风格。
+2. 公开文档和 Muse 一样：README 以英文为主，另附中文版。
+3. 远程图片和今天一样默认加载，应用可以通过 `LoadImage` 换掉加载器、关闭联网。
+4. 加入 playground（§6），像 MyGo 的文档预览一样能在网页上运行。
