@@ -4,7 +4,7 @@ A Typora-style WYSIWYG Markdown editor for [MyGo](https://mygo.egoist.dev/)'s na
 
 The syntax is fixed and the tree behind it is public, so a theme is a CSS file written against the document's elements, not Go code.
 
-> **Status:** the editor, public syntax tree, CSS themes, renderers and the desktop playground are in place (M0–M6). The web playground follows (M7).
+> **Status:** the editor, public syntax tree, CSS themes, renderers, the desktop playground and the web playground are in place (M0–M7).
 
 ```go
 import (
@@ -61,6 +61,18 @@ on the desktop — opening, saving and hot-reloading theme files.
 go run ./cmd/playground
 ```
 
+The same program compiles to WebAssembly for browsers, with the desktop-only
+file features left out:
+
+```bash
+./scripts/build-web.sh                      # writes dist/web, a static site
+python3 -m http.server 8123 --directory dist/web
+```
+
+The loader page MyGo writes shows a spinner until the app is up. Every push to
+`main` builds it and publishes it to GitHub Pages
+(`.github/workflows/pages.yml`; with Pages set to deploy from GitHub Actions).
+
 ## Layout
 
 ```
@@ -72,6 +84,8 @@ render/math/       TeX typesetting on go-latex
 render/mermaid/    Mermaid diagrams
 internal/mdoc/     image loading and the helpers shared with Muse's renderer
 cmd/playground/    the theme playground, its sample document and 纸张
+scripts/           build-web.sh: the playground as a static site for browsers
+mygo.json          the playground app, as MyGo's CLI builds it
 docs/              how the editor works, how to write a theme, and design notes
 ```
 

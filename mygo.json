@@ -1,0 +1,6 @@
+{
+  "name": "livemark Playground",
+  "identifier": "dev.carlopenlab.livemark.playground",
+  "main": "./cmd/playground",
+  "out": "dist"
+}

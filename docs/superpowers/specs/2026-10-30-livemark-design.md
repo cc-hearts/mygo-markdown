@@ -508,7 +508,7 @@ type DiagramStyle struct {
 | M4 ✅ | 编辑器改用主题 | `look`、`istyle` 和写死的常量全部移除；对照基线一致；性能达标 |
 | M5 ✅ | 拆分渲染器 | `render/math`、`render/mermaid` 独立；公式和图表颜色跟随主题；根包不依赖 go-latex |
 | M6 ✅ | Playground、示例主题、文档 | 桌面版的 CSS 编辑、诊断、检查器、语法树面板、热重载可用；README 和主题作者文档（词汇表、属性参考）完成 |
-| M7 ⏳ | 网页版 playground | `js/wasm` 构建脚本和加载页完成；GitHub Actions 发布到 GitHub Pages |
+| M7 ✅ | 网页版 playground | `js/wasm` 构建脚本和加载页完成；GitHub Actions 发布到 GitHub Pages |
 
 **顺序约束**：
 
