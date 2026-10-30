@@ -2,33 +2,84 @@
 
 A Typora-style WYSIWYG Markdown editor for [MyGo](https://mygo.egoist.dev/)'s native UI. The document is the rendering: the caret moves through headings, lists, quotes, tables, code and math as they read; inline syntax (`**`, `` ` ``, `[]()`, `$`) appears only around the caret, and block syntax never shows. Everything is drawn by Go on the GPU — no WebView.
 
-> **Status:** freshly forked from [Muse](https://github.com/CarlOpenLab/muse)'s editor, not yet reshaped. Next come a public syntax tree and themes written as CSS: see [the design](docs/superpowers/specs/2026-10-30-livemark-design.md).
+The syntax is fixed and the tree behind it is public, so a theme is a CSS file written against the document's elements, not Go code.
+
+> **Status:** the editor, public syntax tree, CSS themes, renderers and the desktop playground are in place (M0–M6). The web playground follows (M7).
 
 ```go
-import "github.com/CarlOpenLab/livemark"
+import (
+	"github.com/CarlOpenLab/livemark"
+	"github.com/CarlOpenLab/livemark/render"
+	"github.com/CarlOpenLab/livemark/render/mathrender"
+	"github.com/CarlOpenLab/livemark/render/mermaidrender"
+)
 
 // Kept by the app across frames.
-ed := livemark.New("# Hello\n", livemark.Options{Placeholder: "Write…"})
+ed := livemark.New("# Hello\n", livemark.Options{
+	Placeholder: "Write…",
+	Math:        mathrender.New(),
+	Diagrams:    []render.DiagramRenderer{mermaidrender.New()},
+})
 
 // In the view.
 ed.View(c)
 
 // The Markdown, exactly as written.
 src := ed.Source()
+
+// The style path at the caret, e.g. document › quote › paragraph › strong:revealed.
+path := ed.StylePath(ed.Caret())
+```
+
+Formulas and diagrams are renderers the app passes in: without them the
+editor shows their source, and an app that needs neither links neither.
+
+## Themes
+
+A theme parses to a sheet of rules over the document's elements — `heading`,
+`quote`, `code.block`, `item.checked`, `syntax:revealed`, `token.keyword` —
+and the editor draws with each node's computed style:
+
+```go
+sheet, diagnostics := theme.Parse("mine", css) // never fails; CSS it cannot read is a diagnostic
+ed.SetOptions(livemark.Options{Theme: theme.New(sheet)})
+```
+
+[Writing a theme](docs/theming.md) is the reference: the CSS subset, the
+element vocabulary and the properties that draw. A sample theme, 纸张, lives
+in the playground. [写主题](docs/theming.zh-CN.md) is the same document in
+Chinese.
+
+## Playground
+
+`cmd/playground` edits a theme beside the document it styles: live CSS editor
+with 默认/纸张 presets, diagnostics that jump to their line, a node-path
+inspector that inserts selectors, the public syntax tree, light/dark, and —
+on the desktop — opening, saving and hot-reloading theme files.
+
+```bash
+go run ./cmd/playground
 ```
 
 ## Layout
 
 ```
-*.go            the editor: parse, layout, paint, caret, input methods, undo
-internal/mdoc/  formulas (go-latex), Mermaid diagrams, image loading
-docs/           how the editor works, and design notes
+*.go               the editor: parse, layout, paint, caret, input methods, undo
+syntax/            the public syntax tree: nodes, ranges, style paths, label strings
+theme/             the CSS theme engine: parser, selectors, cascade, vocabulary
+render/            the interfaces through which the editor draws formulas and diagrams
+render/math/       TeX typesetting on go-latex
+render/mermaid/    Mermaid diagrams
+internal/mdoc/     image loading and the helpers shared with Muse's renderer
+cmd/playground/    the theme playground, its sample document and 纸张
+docs/              how the editor works, how to write a theme, and design notes
 ```
 
 ## Develop
 
 ```bash
 go test ./...
+go run ./cmd/playground
 ```
 
 Requires Go 1.27.3+ and MyGo v0.7.3.

@@ -58,12 +58,13 @@ or `-1` never flashes a heading or a bullet.
 
 `layout.go` shapes each leaf with `ui.ShapeRichTextWith` (formulas and
 images are inline objects: `Span.ObjectWidth/Height/Descent`), caches the
-views by their content, width, look and reveal state, and stacks the
-leaves with Typora-like margins. Tables size their columns from their
-cells' natural widths. `paint.go` draws only what `Painter.Visible`
-shows: panels, chrome, search matches, the selection, text, objects,
-Mermaid diagrams and the caret, which is as tall as the text rather than
-its leading.
+views by their content, width, computed style and reveal state, and stacks
+the leaves with the margins the theme gives them. Tables size their columns
+from their cells' natural widths. `paint.go` draws only what
+`Painter.Visible` shows: panels, chrome, search matches, the selection,
+text, objects, Mermaid diagrams and the caret, which is as tall as the text
+rather than its leading — each in its node's computed style from the
+theme.
 
 ## Editing
 
@@ -97,9 +98,19 @@ virtual insertion at the caret, shown underlined in the caret's leaf, in
 UTF-16 units of the source with it; the commit goes in as typed text, one
 step of undo.
 
+## Themes and the tree
+
+The parser's output is also public: `syntax.Parse` returns a tree whose
+nodes carry an element — the type, classes and attributes a theme selects —
+and the ranges of syntax hidden inside them. The editor takes each node's
+style from `theme`, a CSS engine over that vocabulary; the packages'
+doc comments have the details, and [theming](theming.md) is the author's
+guide.
+
 ## What is not done
 
-- Formulas are typeset by go-latex, which lays out a subset of TeX; `internal/mdoc`
-  composes the scripts it cannot (as `\int_0^1`) itself.
+- Formulas are typeset by go-latex, which lays out a subset of TeX;
+  `render/math` composes the scripts it cannot (as `\int_0^1`) itself.
+  Diagrams come from `render/mermaid`, a renderer the app passes in.
 - Resizing a very long document lays every leaf out again in one frame
   (about 150 ms for 340 KB); typing in it costs a few milliseconds.
