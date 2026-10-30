@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui/markdown/parser"
+
+	"github.com/CarlOpenLab/livemark/internal/parse"
 )
 
 func TestZZProbe(t *testing.T) {
@@ -13,7 +15,7 @@ func TestZZProbe(t *testing.T) {
 	if src == "" {
 		t.Skip()
 	}
-	d := parser.New(exts)
+	d := parser.New(parse.Exts)
 	d.Set(src)
 	for i := 1; i < d.Len(); i++ {
 		b := d.Block(i)

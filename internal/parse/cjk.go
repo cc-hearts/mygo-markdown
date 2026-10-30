@@ -1,11 +1,9 @@
-package livemark
+package parse
 
 import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
 // Emphasis beside CJK punctuation. CommonMark decides whether a run of *,
@@ -15,10 +13,10 @@ import (
 // and the CJK-friendly amendment to CommonMark
 // (github.com/tats-u/markdown-cjk-friendly), take it for strong emphasis.
 //
-// The parser follows CommonMark, so the editor gives it the source with
-// a character beside such a run swapped for one of the same length that
-// makes the parser read the run as the amendment does. No offset moves,
-// and nothing shows the swap: the display is drawn from the source.
+// The parser follows CommonMark, so it is given the source with a
+// character beside such a run swapped for one of the same length that
+// makes it read the run as the amendment does. No offset moves, and
+// nothing shows the swap: the display is drawn from the source.
 
 // cjkClass is what a character beside a delimiter run is, for flanking.
 type cjkClass uint8
@@ -66,17 +64,17 @@ func isCJK(r rune) bool {
 	case r < 0x1100:
 		return false
 	case r <= 0x115f, // Hangul Jamo
-		r >= 0x2e80 && r <= 0x303e, // radicals, CJK symbols and punctuation
-		r >= 0x3041 && r <= 0x33ff, // kana, bopomofo, enclosed letters, compatibility
-		r >= 0x3400 && r <= 0x4dbf, // ideographs, extension A
-		r >= 0x4e00 && r <= 0x9fff, // ideographs
-		r >= 0xa000 && r <= 0xa4cf, // Yi
-		r >= 0xa960 && r <= 0xa97f, // Hangul Jamo extended A
-		r >= 0xac00 && r <= 0xd7a3, // Hangul syllables
-		r >= 0xf900 && r <= 0xfaff, // compatibility ideographs
-		r >= 0xfe10 && r <= 0xfe19, // vertical forms
-		r >= 0xfe30 && r <= 0xfe6f, // compatibility and small forms
-		r >= 0xff00 && r <= 0xffef, // halfwidth and fullwidth forms
+		r >= 0x2e80 && r <= 0x303e,   // radicals, CJK symbols and punctuation
+		r >= 0x3041 && r <= 0x33ff,   // kana, bopomofo, enclosed letters, compatibility
+		r >= 0x3400 && r <= 0x4dbf,   // ideographs, extension A
+		r >= 0x4e00 && r <= 0x9fff,   // ideographs
+		r >= 0xa000 && r <= 0xa4cf,   // Yi
+		r >= 0xa960 && r <= 0xa97f,   // Hangul Jamo extended A
+		r >= 0xac00 && r <= 0xd7a3,   // Hangul syllables
+		r >= 0xf900 && r <= 0xfaff,   // compatibility ideographs
+		r >= 0xfe10 && r <= 0xfe19,   // vertical forms
+		r >= 0xfe30 && r <= 0xfe6f,   // compatibility and small forms
+		r >= 0xff00 && r <= 0xffef,   // halfwidth and fullwidth forms
 		r >= 0x16fe0 && r <= 0x18cff, // Tangut, Khitan
 		r >= 0x1b000 && r <= 0x1b2ff, // kana supplement and extensions
 		r >= 0x20000 && r <= 0x3fffd: // ideographs, extensions B and later
@@ -120,10 +118,10 @@ type delimRun struct {
 	after      int
 }
 
-// cjkMask returns src with characters beside delimiter runs swapped, so
+// CJKFriendly returns src with characters beside delimiter runs swapped, so
 // that the parser reads emphasis and strikethrough beside CJK text as the
 // CJK-friendly amendment does, and src itself when nothing needs it.
-func cjkMask(src string) string {
+func CJKFriendly(src string) string {
 	runs := delimRuns(src)
 	if len(runs) == 0 {
 		return src
@@ -152,7 +150,7 @@ func cjkMask(src string) string {
 	return string(b)
 }
 
-// masker finds the swaps of cjkMask.
+// masker finds the swaps of CJKFriendly.
 type masker struct {
 	src   string
 	runs  []delimRun
@@ -342,28 +340,3 @@ func quotePrefix(src string, off int) bool {
 }
 
 func isAlnumRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }
-
-// plainText returns the text of inlines, as parser.PlainText does, with
-// the characters cjkMask swapped taken back: a Text inline that is the
-// parsed source as it is reads the editor's source instead.
-func (e *Editor) plainText(ins []parser.Inline) string {
-	parsed := e.doc.Source()
-	var b strings.Builder
-	for k := range ins {
-		switch in := &ins[k]; in.Kind {
-		case parser.Text:
-			if in.End <= len(parsed) && in.End <= len(e.src) && in.Text == parsed[in.Start:in.End] {
-				b.WriteString(e.src[in.Start:in.End])
-			} else {
-				b.WriteString(in.Text)
-			}
-		case parser.Code, parser.HTML, parser.Math:
-			b.WriteString(in.Text)
-		case parser.SoftBreak, parser.LineBreak:
-			b.WriteByte(' ')
-		case parser.FootnoteRef:
-			b.WriteString("[^" + in.Text + "]")
-		}
-	}
-	return b.String()
-}

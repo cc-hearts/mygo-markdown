@@ -503,8 +503,8 @@ type DiagramStyle struct {
 | M0 ✅ | fork 基线 | `fd86c85`，构建和测试通过 |
 | M0.5 | 同步 Muse 完成后的 CJK 强调工作 | Muse 那边提交后移植差异，测试通过 |
 | M1 | 外观对照基线 | golden 文件入库，在未改动的代码上稳定通过 |
-| M2 | `syntax` 包 | 公开 API 和词汇表文档完成；解析准备搬进 `internal/parse`；一致性测试通过 |
-| M3 | `theme` 包 | CSS 子集的解析、层叠、诊断完成，单测通过；`default.css` 写完，解析时没有警告 |
+| M2 ✅ | `syntax` 包 | 公开 API 和词汇表文档完成；解析准备搬进 `internal/parse`；一致性测试通过 |
+| M3 ✅ | `theme` 包 | CSS 子集的解析、层叠、诊断完成，单测通过；`default.css` 写完，解析时没有警告 |
 | M4 | 编辑器改用主题 | `look`、`istyle` 和写死的常量全部移除；对照基线一致；性能达标 |
 | M5 | 拆分渲染器 | `render/math`、`render/mermaid` 独立；公式和图表颜色跟随主题；根包不依赖 go-latex |
 | M6 | Playground、示例主题、文档 | 桌面版的 CSS 编辑、诊断、检查器、语法树面板、热重载可用；README 和主题作者文档（词汇表、属性参考）完成 |

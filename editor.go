@@ -9,6 +9,8 @@ import (
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown/parser"
+
+	"github.com/CarlOpenLab/livemark/internal/parse"
 )
 
 // Options configure an editor. The app sets them before building the
@@ -186,7 +188,7 @@ func (e *Editor) Source() string { return e.src }
 // caret goes to its start and the history of undo is cleared.
 func (e *Editor) SetSource(src string) {
 	e.src = src
-	e.doc = parser.New(exts)
+	e.doc = parser.New(parse.Exts)
 	e.rev++
 	e.anchor, e.caret = 0, 0
 	e.phantom = nil
@@ -215,8 +217,9 @@ func (e *Editor) sync() {
 		e.parsed = e.rev
 		return
 	}
-	e.fm = frontMatterEnd(e.src)
-	e.doc.Set(cjkMask(maskFrontMatter(e.src, e.fm)))
+	text, fm := parse.Text(e.src)
+	e.fm = fm
+	e.doc.Set(text)
 	e.leaves = buildLeaves(e.src, e.doc, e.fm)
 	if p := e.phantom; p != nil {
 		e.leaves = insertPhantom(e.leaves, p)

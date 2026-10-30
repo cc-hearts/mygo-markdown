@@ -18,10 +18,6 @@ import (
 	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
-// exts is the Markdown the editor reads: GitHub's flavor, footnotes and
-// math, with $…$ as inline math, as Typora writes it.
-const exts = parser.Default | parser.ExtDollarMath
-
 // leafKind is what a leaf of the document is: the units the editor lays
 // out one after another.
 type leafKind uint8
@@ -197,44 +193,6 @@ func lineEndAt(src string, off int) int {
 		return off + i
 	}
 	return len(src)
-}
-
-// frontMatterEnd returns where the YAML front matter at the top of src
-// ends, after its closing line, or 0 when it has none: a first line of
-// ---, up to a line of --- or ....
-func frontMatterEnd(src string) int {
-	if !strings.HasPrefix(src, "---\n") && !strings.HasPrefix(src, "---\r\n") {
-		return 0
-	}
-	for off := strings.IndexByte(src, '\n') + 1; off < len(src); {
-		end := lineEndAt(src, off)
-		l := strings.TrimRight(src[off:end], " \t\r")
-		if l == "---" || l == "..." {
-			if off == 4 || off == 5 {
-				// An empty front matter is two rules: leave them be.
-				return 0
-			}
-			return end
-		}
-		off = end + 1
-	}
-	return 0
-}
-
-// maskFrontMatter returns src with its front matter blanked out, its
-// newlines kept, so that the parser reads blank lines there and every
-// offset after it stays where it was.
-func maskFrontMatter(src string, end int) string {
-	if end == 0 {
-		return src
-	}
-	b := []byte(src)
-	for i := 0; i < end; i++ {
-		if b[i] != '\n' && b[i] != '\r' {
-			b[i] = ' '
-		}
-	}
-	return string(b)
 }
 
 // buildLeaves turns the parse of src into the leaves the editor lays out,
@@ -426,7 +384,7 @@ func linesLeaf(src string, d *parser.Document, c int, kind leafKind, conts []con
 	for k := 0; k < n; k++ {
 		text, off := d.Line(c, k)
 		// The parser's line is of the source it was given, which may have
-		// characters swapped (see cjkMask): the line is the source's.
+		// characters swapped (see parse.CJKFriendly): the line is the source's.
 		text = src[off : off+len(sourceLine(d.Source(), text, off))]
 		l.lines = append(l.lines, line{off: off, text: strings.TrimSuffix(text, "\r")})
 	}
