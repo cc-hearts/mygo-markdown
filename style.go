@@ -102,6 +102,12 @@ func (e *Editor) ensureResolver(t *ui.Theme) *theme.Resolver {
 // rootStyle returns the document element's computed style.
 func (e *Editor) rootStyle() *theme.Computed { return e.res.Root().Style() }
 
+// pseudo returns the computed style of a pseudo-element of the document,
+// as ::selection or ::placeholder, in states.
+func (e *Editor) pseudo(name string, states theme.States) *theme.Computed {
+	return e.res.Root().Pseudo(name, states)
+}
+
 // pickFont returns the family of a computed list that the editor can use,
 // the window's own for the system font.
 func (e *Editor) pickFont(fams []string) string {

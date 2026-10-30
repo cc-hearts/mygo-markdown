@@ -86,8 +86,10 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 	}
 	if len(e.leaves) == 1 && e.leaves[0].kind == kPhantom && e.opts.Placeholder != "" && e.compose == "" {
 		l := e.leaves[0]
-		sp := ui.Span{Text: e.opts.Placeholder, Color: e.lk.muted.Alpha(0.6), Size: e.lk.size}
-		p.RichText(ox+l.x, oy+l.y+l.h/2-e.lk.size*0.7, l.w, sp)
+		cs := e.pseudo("placeholder", 0)
+		sp := e.styleSpan(cs)
+		sp.Text = e.opts.Placeholder
+		p.RichText(ox+l.x, oy+l.y+l.h/2-cs.FontSize*0.7, l.w, sp)
 	}
 	e.paintCaret(p, ox, oy)
 }
@@ -122,14 +124,15 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 	if v.layout != nil {
 		lx, ly := x+v.tx, y+v.ty
 		for i, h := range e.highlights {
-			col := ui.RGBA(250, 204, 21, 0.35)
+			states := theme.States(0)
 			if i == e.current {
-				col = ui.RGBA(250, 150, 20, 0.55)
+				states = theme.Current
 			}
+			col := uiColor(e.pseudo("search-text", states).Background)
 			e.fillRange(p, u, v, h.Start, h.End, lx, ly, col)
 		}
 		if a != z {
-			sel := e.lk.selection
+			sel := uiColor(e.pseudo("selection", 0).Background)
 			if !e.focused {
 				sel = sel.Alpha(0.6)
 			}
@@ -140,7 +143,7 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 		}
 		e.paintObjects(p, v, lx, ly)
 	} else if a != z && a <= leafLo(u) && z >= u.end {
-		p.Fill(box, e.lk.selection, 4)
+		p.Fill(box, uiColor(e.pseudo("selection", 0).Background), 4)
 	}
 	if v.block != nil {
 		e.paintObject(p, v.block, ui.Rect{X: x + v.bx, Y: y + v.by, W: v.block.w, H: v.block.h})
@@ -385,7 +388,11 @@ func (e *Editor) paintCaret(p *ui.Painter, ox, oy float32) {
 		return
 	}
 	h := r.H
-	p.Fill(ui.Rect{X: ox + r.X - 0.75, Y: oy + r.Y, W: 1.75, H: h}, e.lk.caret, 0.5)
+	col := uiColor(e.rootStyle().CaretColor)
+	if col.A == 0 {
+		col = e.lk.caret
+	}
+	p.Fill(ui.Rect{X: ox + r.X - 0.75, Y: oy + r.Y, W: 1.75, H: h}, col, 0.5)
 }
 
 // composeCaretRect returns the caret's box inside the composition of an
