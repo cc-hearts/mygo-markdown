@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown/parser"
 
 	"github.com/CarlOpenLab/livemark/theme"
@@ -318,6 +319,8 @@ type leafStyled struct {
 	// their styles.
 	conts     []*theme.Node
 	contStyle []*theme.Computed
+	// tokens are the styles of the kinds of code tokens in the block.
+	tokens [32]*theme.Computed
 }
 
 // containerNode returns the node of the containers around a leaf: quotes,
@@ -549,6 +552,79 @@ func (e *Editor) styledLeaf(l *leaf) *leafStyled {
 	e.styledByGen[e.styleGen] = styles
 	l.styled, l.styleGen, l.styleRev = s, e.styleGen, rev
 	return s
+}
+
+// tokenName returns the class of a kind of code token.
+func tokenName(k editor.TokenKind) string {
+	switch k {
+	case editor.TokenText:
+		return "text"
+	case editor.TokenKeyword:
+		return "keyword"
+	case editor.TokenType:
+		return "type"
+	case editor.TokenFunction:
+		return "function"
+	case editor.TokenVariable:
+		return "variable"
+	case editor.TokenProperty:
+		return "property"
+	case editor.TokenConstant:
+		return "constant"
+	case editor.TokenNumber:
+		return "number"
+	case editor.TokenString:
+		return "string"
+	case editor.TokenEscape:
+		return "escape"
+	case editor.TokenRegexp:
+		return "regexp"
+	case editor.TokenComment:
+		return "comment"
+	case editor.TokenOperator:
+		return "operator"
+	case editor.TokenPunctuation:
+		return "punctuation"
+	case editor.TokenTag:
+		return "tag"
+	case editor.TokenAttribute:
+		return "attribute"
+	case editor.TokenMeta:
+		return "meta"
+	case editor.TokenHeading:
+		return "heading"
+	case editor.TokenEmphasis:
+		return "emphasis"
+	case editor.TokenStrong:
+		return "strong"
+	case editor.TokenLink:
+		return "link"
+	case editor.TokenCode:
+		return "code"
+	case editor.TokenInserted:
+		return "inserted"
+	case editor.TokenDeleted:
+		return "deleted"
+	case editor.TokenInvalid:
+		return "invalid"
+	}
+	return "text"
+}
+
+// tokenElement returns the element of a kind of code token, inside a code
+// block.
+func tokenElement(k editor.TokenKind) theme.Element {
+	return theme.Element{Type: "token", Classes: []string{tokenName(k)}}
+}
+
+// tokenStyle returns the style of a kind of code token in a leaf's block,
+// computed once.
+func tokenStyle(st *leafStyled, k editor.TokenKind) *theme.Computed {
+	i := int(k) & 31
+	if st.tokens[i] == nil {
+		st.tokens[i] = st.node.Child(tokenElement(k)).Style()
+	}
+	return st.tokens[i]
 }
 
 // tableElement returns the element of a table.

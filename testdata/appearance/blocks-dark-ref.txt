@@ -4,40 +4,40 @@ code [6,53) line=0 syntax=0 box=40.00,35.20,640.00,91.20 lang="go" fenced=true
   line 6 "package main"
   line 19 ""
   line 20 "func main() { fmt.Println(\"hi\") }"
-  text s[6,13) d[0,7) "package" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=ff7b72ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[13,14) d[7,8) " " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[14,18) d[8,12) "main" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  atom s[18,19) d[12,13) "\n" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  atom s[19,20) d[13,14) "\n" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[20,24) d[14,18) "func" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=ff7b72ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[24,25) d[18,19) " " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[25,29) d[19,23) "main" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=d2a8ffff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[29,31) d[23,25) "()" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[31,32) d[25,26) " " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[32,33) d[26,27) "{" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[33,34) d[27,28) " " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[34,37) d[28,31) "fmt" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[37,38) d[31,32) "." font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[38,45) d[32,39) "Println" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=d2a8ffff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[45,46) d[39,40) "(" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[46,50) d[40,44) "\"hi\"" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=a5d6ffff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[50,51) d[44,45) ")" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[51,52) d[45,46) " " font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[52,53) d[46,47) "}" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[6,13) d[0,7) "package" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=ff7b72ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[13,14) d[7,8) " " font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[14,18) d[8,12) "main" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  atom s[18,19) d[12,13) "\n" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  atom s[19,20) d[13,14) "\n" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[20,24) d[14,18) "func" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=ff7b72ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[24,25) d[18,19) " " font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[25,29) d[19,23) "main" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=d2a8ffff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[29,31) d[23,25) "()" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[31,32) d[25,26) " " font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[32,33) d[26,27) "{" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[33,34) d[27,28) " " font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[34,37) d[28,31) "fmt" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[37,38) d[31,32) "." font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[38,45) d[32,39) "Println" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=d2a8ffff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[45,46) d[39,40) "(" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[46,50) d[40,44) "\"hi\"" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=a5d6ffff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[50,51) d[44,45) ")" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[51,52) d[45,46) " " font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[52,53) d[46,47) "}" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 code [70,88) line=59 syntax=59 box=40.00,139.20,640.00,220.00 lang="mermaid" fenced=true
   view panel=true reveal=false label="mermaid" tx=16.00 ty=12.00 h=220.00
   line 70 "graph TD"
   line 79 "  A --> B"
-  text s[11,19) d[0,8) "graph TD" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  atom s[19,20) d[8,9) "\n" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[20,29) d[9,18) "  A --> B" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[11,19) d[0,8) "graph TD" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  atom s[19,20) d[8,9) "\n" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[20,29) d[9,18) "  A --> B" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 code [98,125) line=94 syntax=98 box=40.00,372.00,640.00,68.80 lang="" fenced=false
   view panel=true reveal=false label="" tx=16.00 ty=12.00 h=68.80
   line 98 "indented code"
   line 116 "two lines"
-  text s[4,17) d[0,13) "indented code" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  atom s[17,22) d[13,14) "\n" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
-  text s[22,31) d[14,23) "two lines" font="" size=0.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[4,17) d[0,13) "indented code" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  atom s[17,22) d[13,14) "\n" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
+  text s[22,31) d[14,23) "two lines" font="monospace" size=14.00 weight=0 italic=false underline=false wavy=false strike=false color=f4f4f5ff decoration=00000000:0.00 bg=00000000 radius=0.00 spacing=0.00 shift=0.00 features="" lang="" marker=false
 math [130,145) line=127 syntax=127 box=40.00,453.60,640.00,42.25
   view panel=false reveal=false label="" tx=0.00 ty=0.00 h=42.25 block obj 299.75,8.00 40.50x26.25 descent=0.00 alone=true alt="" loaded=true
   line 130 "\\frac{a}{b} = c"

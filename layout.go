@@ -86,7 +86,6 @@ func (e *Editor) setLook(t *ui.Theme) {
 		lk.quoteBar = ui.RGBA(0, 0, 0, 0.12)
 		lk.markBg = ui.RGBA(250, 204, 21, 0.45)
 	}
-	lk.code = editor.DefaultTheme(t)
 }
 
 // leafView is a leaf as the editor shows it: its display, laid out, and
@@ -340,7 +339,8 @@ func aloneImage(ins []parser.Inline, src string) bool {
 // codeView lays out a block of code: its lines, highlighted, in a panel,
 // with its fence's info string above them while the caret is there.
 func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *leafView {
-	cs := e.leafStyle(l)
+	st := e.styledLeaf(l)
+	cs := st.style
 	f := e.styleFont(cs)
 	padL, padR, padT, padB := cs.Padding.Left, cs.Padding.Right, cs.Padding.Top, cs.Padding.Bottom
 	inner := max(width-padL-padR, 40)
@@ -358,7 +358,7 @@ func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *lea
 	if l.fenced {
 		v.info = e.styleNode(l).Pseudo("info", 0)
 	}
-	plain := ui.Span{Color: uiColor(cs.Color)}
+	plain := e.styleSpan(cs)
 	infoLine := l.fenced && caretIn && b.reveal >= l.infoStart && b.reveal <= l.infoEnd
 	if infoLine {
 		node := e.styleNode(l)
@@ -391,15 +391,7 @@ func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *lea
 			if end <= at {
 				continue
 			}
-			sp := plain
-			if c := e.lk.code.TokenColor(tk.Kind); c.A != 0 {
-				sp.Color = c
-			}
-			ts := e.lk.code.Tokens[tk.Kind]
-			sp.Italic = ts.Italic
-			if ts.Bold {
-				sp.Weight = 700
-			}
+			sp := e.styleSpan(tokenStyle(st, tk.Kind))
 			b.codeRun(ln.off+at, ln.off+end, sp)
 			at = end
 		}

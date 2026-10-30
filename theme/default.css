@@ -105,6 +105,35 @@ code.block::info {
   color: color-mix(in srgb, var(--muted) 75%, transparent);
 }
 
+/* Code tokens: GitHub's colors, as the editor's own code view uses. */
+token.keyword, token.operator { color: #cf222e; }
+token.type { color: #953800; }
+token.function, token.meta { color: #8250df; }
+token.property, token.constant, token.number, token.attribute { color: #0550ae; }
+token.string, token.link, token.code { color: #0a3069; }
+token.escape { color: #0550ae; }
+token.regexp, token.tag, token.inserted { color: #116329; }
+token.comment { color: #6e7781; }
+token.heading { color: #0550ae; font-weight: 700; }
+token.strong { font-weight: 700; }
+token.emphasis { font-style: italic; }
+token.deleted { color: #82071e; }
+token.invalid { color: #d1242f; }
+
+@media (prefers-color-scheme: dark) {
+  token.keyword, token.operator { color: #ff7b72; }
+  token.type { color: #ffa657; }
+  token.function, token.meta { color: #d2a8ff; }
+  token.property, token.constant, token.number, token.attribute { color: #79c0ff; }
+  token.string, token.link, token.code { color: #a5d6ff; }
+  token.escape { color: #79c0ff; }
+  token.regexp, token.tag, token.inserted { color: #7ee787; }
+  token.comment { color: #8b949e; }
+  token.heading { color: #79c0ff; }
+  token.deleted { color: #ffa198; }
+  token.invalid { color: #f85149; }
+}
+
 /* A formula's ink is the color of math as it shows typeset, not
    :revealed: its source takes the colors below. */
 math { color: var(--math); }
