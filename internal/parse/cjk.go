@@ -1,7 +1,6 @@
 package parse
 
 import (
-	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -13,10 +12,10 @@ import (
 // and the CJK-friendly amendment to CommonMark
 // (github.com/tats-u/markdown-cjk-friendly), take it for strong emphasis.
 //
-// The parser follows CommonMark, so it is given the source with a
+// Parsers follow CommonMark, so CJKFriendly gives them the source with a
 // character beside such a run swapped for one of the same length that
-// makes it read the run as the amendment does. No offset moves, and
-// nothing shows the swap: the display is drawn from the source.
+// makes them read the run as the amendment does. No offset moves, so the
+// text of what they parse is read from the source as it was.
 
 // cjkClass is what a character beside a delimiter run is, for flanking.
 type cjkClass uint8
@@ -110,53 +109,64 @@ func flanks(b, a cjkClass, cjk bool) (left, right bool) {
 }
 
 // delimRun is a run of delimiters in the source, and the characters
-// around it: the offsets of their first bytes, -1 for a line's edge.
+// around it.
 type delimRun struct {
 	start, end int
 	c          byte
-	before     int
-	after      int
+	// before and after are the offsets of the characters before and after
+	// the run, -1 at a line's edge; br and ar the characters, a newline at
+	// a line's edge, and sb and sa their stand-ins, or 0.
+	before, after int
+	br, ar        rune
+	sb, sa        rune
+	// lead tells a run after a line's prefix of quotation markers, which
+	// the parser does not read as text before it: "> **注意：**".
+	lead bool
+	// open and close are whether the run opens and closes emphasis, as the
+	// amendment reads it.
+	open, close bool
 }
 
-// CJKFriendly returns src with characters beside delimiter runs swapped, so
-// that the parser reads emphasis and strikethrough beside CJK text as the
-// CJK-friendly amendment does, and src itself when nothing needs it.
+// CJKFriendly returns src with characters beside delimiter runs swapped,
+// so that a CommonMark parser reads emphasis and strikethrough beside CJK
+// text as the CJK-friendly amendment does; src itself when nothing needs
+// it. The result is as long as src, every character where it was: what
+// the parser makes of it is read from src. What it swaps on a line
+// depends on that line alone.
 func CJKFriendly(src string) string {
 	runs := delimRuns(src)
 	if len(runs) == 0 {
 		return src
 	}
-	m := &masker{src: src, runs: runs, swaps: map[int]rune{}, beside: map[int][]int{}}
-	for k, r := range runs {
-		if r.before >= 0 {
-			m.beside[r.before] = append(m.beside[r.before], k)
-		}
-		if r.after >= 0 {
-			m.beside[r.after] = append(m.beside[r.after], k)
-		}
-	}
+	m := masker{src: src, runs: runs}
 	for k := range runs {
-		if !m.matches(k) {
-			m.fix(k)
+		runs[k].open, runs[k].close = m.can(k, true)
+	}
+	swapped := false
+	for k := range runs {
+		if !m.matches(k) && m.fix(k) {
+			swapped = true
 		}
 	}
-	if len(m.swaps) == 0 {
+	if !swapped {
 		return src
 	}
 	b := []byte(src)
-	for off, r := range m.swaps {
-		utf8.EncodeRune(b[off:], r)
+	for _, r := range runs {
+		if r.sb != 0 {
+			utf8.EncodeRune(b[r.before:], r.sb)
+		}
+		if r.sa != 0 {
+			utf8.EncodeRune(b[r.after:], r.sa)
+		}
 	}
 	return string(b)
 }
 
 // masker finds the swaps of CJKFriendly.
 type masker struct {
-	src   string
-	runs  []delimRun
-	swaps map[int]rune
-	// beside are the runs beside each character, by its offset.
-	beside map[int][]int
+	src  string
+	runs []delimRun
 }
 
 // letters and puncts are the stand-ins of a character by its length in
@@ -167,66 +177,90 @@ var (
 )
 
 // fix swaps a character beside run k for a stand-in, so that the parser
-// reads the run as the amendment does; unless none does, or the swap
-// changes how the parser reads a run on the other side of the character
-// that it read right. The first that works of a letter for the character
-// before the run, then after it, then punctuation for either.
-func (m *masker) fix(k int) {
-	r := m.runs[k]
+// reads the run as the amendment does, and reports whether it did; it
+// does not when no stand-in does, nor when the swap changes how the parser
+// reads the run on the other side of the character, which it read right.
+// The first that works of a letter for the character before the run,
+// then after it, then punctuation for either.
+func (m *masker) fix(k int) bool {
+	r := &m.runs[k]
 	for _, c := range [...]struct {
-		off int
-		by  *[5]rune
-	}{{r.before, &letters}, {r.after, &letters}, {r.before, &puncts}, {r.after, &puncts}} {
+		off      int
+		ch, done rune
+		by       *[5]rune
+	}{{r.before, r.br, r.sb, &letters}, {r.after, r.ar, r.sa, &letters}, {r.before, r.br, r.sb, &puncts}, {r.after, r.ar, r.sa, &puncts}} {
 		// Not a line's edge, nor ASCII, which may be syntax, nor a
 		// character swapped already.
-		if c.off < 0 || m.src[c.off] < utf8.RuneSelf {
+		if c.off < 0 || c.ch < utf8.RuneSelf || c.done != 0 || c.ch == utf8.RuneError || classOf(c.ch) == clsSpace {
 			continue
 		}
-		if _, ok := m.swaps[c.off]; ok {
+		n := utf8.RuneLen(c.ch)
+		if n >= len(c.by) {
 			continue
 		}
-		ch, n := utf8.DecodeRuneInString(m.src[c.off:])
-		if ch == utf8.RuneError || n >= len(c.by) || classOf(ch) == clsSpace {
+		j := m.beside(k, c.off)
+		was := j >= 0 && m.matches(j)
+		m.swap(k, j, c.off, c.by[n])
+		if m.matches(k) && !(was && !m.matches(j)) {
+			return true
+		}
+		m.swap(k, j, c.off, 0)
+	}
+	return false
+}
+
+// beside returns the run other than k beside the character at off, before
+// or after k: the run before it or after it, or -1.
+func (m *masker) beside(k, off int) int {
+	if off == m.runs[k].before && k > 0 && m.runs[k-1].after == off {
+		return k - 1
+	}
+	if off == m.runs[k].after && k+1 < len(m.runs) && m.runs[k+1].before == off {
+		return k + 1
+	}
+	return -1
+}
+
+// swap sets the stand-in of the character at off beside runs k and j (-1
+// for none), or with to 0 takes it back.
+func (m *masker) swap(k, j, off int, to rune) {
+	for _, i := range [2]int{k, j} {
+		if i < 0 {
 			continue
 		}
-		was := map[int]bool{}
-		for _, j := range m.beside[c.off] {
-			if j != k {
-				was[j] = m.matches(j)
-			}
+		r := &m.runs[i]
+		if r.before == off {
+			r.sb = to
 		}
-		m.swaps[c.off] = c.by[n]
-		ok := m.matches(k)
-		for j, right := range was {
-			if right && !m.matches(j) {
-				ok = false
-			}
+		if r.after == off {
+			r.sa = to
 		}
-		if ok {
-			return
-		}
-		delete(m.swaps, c.off)
 	}
 }
 
 // matches reports whether the parser reads run k as the amendment does.
 func (m *masker) matches(k int) bool {
-	o1, c1 := m.can(k, false)
-	o2, c2 := m.can(k, true)
-	return o1 == o2 && c1 == c2
+	o, c := m.can(k, false)
+	return o == m.runs[k].open && c == m.runs[k].close
 }
 
 // can returns whether run k can open and close: as the parser reads it,
 // with the swaps made so far, or with cjk set, as the amendment reads the
 // source.
 func (m *masker) can(k int, cjk bool) (open, close bool) {
-	r := m.runs[k]
-	br, ar := m.runeAt(r.before, !cjk), m.runeAt(r.after, !cjk)
+	r := &m.runs[k]
+	br, ar := r.br, r.ar
+	if !cjk && r.sb != 0 {
+		br = r.sb
+	}
+	if !cjk && r.sa != 0 {
+		ar = r.sa
+	}
 	b, a := classOf(br), classOf(ar)
 	if cjk {
 		b = m.seqClass(r.before, b)
 	}
-	if r.before >= 0 && quotePrefix(m.src, r.before) {
+	if r.lead {
 		b = clsSpace
 	}
 	left, right := flanks(b, a, cjk)
@@ -245,19 +279,6 @@ func (m *masker) can(k int, cjk bool) (open, close bool) {
 	return left, right
 }
 
-// runeAt returns the character at off: as the parser reads it, with the
-// swaps made so far, or as the source has it. A line's edge is a newline.
-func (m *masker) runeAt(off int, swapped bool) rune {
-	if off < 0 {
-		return '\n'
-	}
-	if r, ok := m.swaps[off]; ok && swapped {
-		return r
-	}
-	r, _ := utf8.DecodeRuneInString(m.src[off:])
-	return r
-}
-
 // seqClass returns the class, b, of the character at off before a run as
 // the amendment reads it: a variation selector goes with the character
 // before it, and an ideographic one is a CJK character.
@@ -271,6 +292,10 @@ func (m *masker) seqClass(off int, b cjkClass) cjkClass {
 		return clsCJK
 	case r >= 0xfe00 && r <= 0xfe0e && off > 0:
 		p, _ := utf8.DecodeLastRuneInString(m.src[:off])
+		if r == 0xfe01 && (p == '‘' || p == '’' || p == '“' || p == '”') {
+			// A quotation mark in its fullwidth form is CJK.
+			return clsCJKPunct
+		}
 		if c := classOf(p); c != clsSpace && c != clsOther {
 			return c
 		}
@@ -284,9 +309,16 @@ func (m *masker) seqClass(off int, b cjkClass) cjkClass {
 func delimRuns(src string) []delimRun {
 	var runs []delimRun
 	wide := false
+	// lead tells the line so far is a prefix of quotation markers.
+	lead := true
 	for i := 0; i < len(src); {
 		c := src[i]
 		if c != '*' && c != '_' && c != '~' {
+			if c == '\n' {
+				lead = true
+			} else if c != ' ' && c != '\t' && c != '>' {
+				lead = false
+			}
 			i++
 			continue
 		}
@@ -300,18 +332,22 @@ func delimRuns(src string) []delimRun {
 		}
 		i = j
 		if s == j || c == '~' && j-s > 2 {
+			lead = false
 			continue
 		}
-		r := delimRun{start: s, end: j, c: c, before: -1, after: -1}
+		r := delimRun{start: s, end: j, c: c, before: -1, after: -1, br: '\n', ar: '\n'}
 		if s > 0 {
 			if p, n := utf8.DecodeLastRuneInString(src[:s]); p != '\n' && p != '\r' {
-				r.before = s - n
+				r.before, r.br = s-n, p
+				r.lead = lead
 			}
 		}
 		if j < len(src) && src[j] != '\n' && src[j] != '\r' {
 			r.after = j
+			r.ar, _ = utf8.DecodeRuneInString(src[j:])
 		}
-		wide = wide || j < len(src) && src[j] >= utf8.RuneSelf || s > 0 && src[s-1] >= utf8.RuneSelf
+		lead = false
+		wide = wide || r.br >= utf8.RuneSelf || r.ar >= utf8.RuneSelf
 		runs = append(runs, r)
 	}
 	if !wide {
@@ -327,16 +363,6 @@ func escapedAt(src string, i int) bool {
 		n++
 	}
 	return n%2 == 1
-}
-
-// quotePrefix reports whether the character at off ends a line's prefix
-// of quotation markers, which the parser does not read as text before a
-// run: "> **注意：**".
-func quotePrefix(src string, off int) bool {
-	if src[off] != '>' && src[off] != ' ' && src[off] != '\t' {
-		return false
-	}
-	return strings.Trim(src[lineStartAt(src, off):off+1], " \t>") == ""
 }
 
 func isAlnumRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }

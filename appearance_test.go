@@ -153,6 +153,22 @@ var appearanceDocs = []struct {
 			{"heading", "# Top", 2},
 		},
 	},
+	{
+		name: "cjk",
+		src: "**注意：**这是**重点**内容。\n" +
+			"\n" +
+			"中文**（括号）**中文，**English:**中文。\n" +
+			"\n" +
+			"> **引用：**中文\n" +
+			"\n" +
+			"- **步骤一：**安装依赖\n" +
+			"- **步骤二：**运行\n",
+		carets: []appearanceCaret{
+			{"strong", "**重点**", 2},
+			{"quote", "**引用：**", 2},
+			{"item", "**步骤一：**", 2},
+		},
+	},
 }
 
 // appearanceCase is one drawing of one document: a theme, and a caret to
