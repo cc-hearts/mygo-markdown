@@ -1,11 +1,14 @@
 package livemark
 
 import (
+	"slices"
 	"strconv"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown/parser"
+
+	"github.com/CarlOpenLab/livemark/theme"
 )
 
 const blink = 530 * time.Millisecond
@@ -26,22 +29,35 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 
 	// The containers' chrome: quotation bars from their first leaf to their
 	// last.
-	type bar struct{ x, y0, y1 float32 }
+	type bar struct {
+		x, y0, y1 float32
+		w         float32
+		color     ui.Color
+	}
 	bars := map[int]*bar{}
 	var order []int
 	for _, l := range e.leaves {
+		if !hasQuote(l.conts) {
+			continue
+		}
 		x := e.colX
-		for _, c := range l.conts {
+		st := e.styledLeaf(l)
+		for k, c := range l.conts {
+			cs := st.contStyle[k]
 			if c.kind == cQuote {
 				b := bars[c.id]
 				if b == nil {
-					b = &bar{x: x, y0: l.y, y1: l.y + l.h}
+					bw := cs.Border[3].Width
+					if bw <= 0 {
+						bw = 3
+					}
+					b = &bar{x: x, y0: l.y, y1: l.y + l.h, w: bw, color: uiColor(cs.Border[3].Color)}
 					bars[c.id] = b
 					order = append(order, c.id)
 				}
 				b.y1 = l.y + l.h
 			}
-			x += e.indentOf([]cont{c})
+			x += cs.Padding.Left
 		}
 	}
 	for _, id := range order {
@@ -49,7 +65,7 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 		if b.y1 < top || b.y0 > bottom {
 			continue
 		}
-		p.Fill(ui.Rect{X: ox + b.x + 1, Y: oy + b.y0 - 2, W: 3, H: b.y1 - b.y0 + 4}, e.lk.quoteBar, 1.5)
+		p.Fill(ui.Rect{X: ox + b.x + 1, Y: oy + b.y0 - 2, W: b.w, H: b.y1 - b.y0 + 4}, b.color, b.w/2)
 	}
 
 	a, z := e.selection()
@@ -76,6 +92,16 @@ func (e *Editor) paint(p *ui.Painter, r ui.Rect) {
 	e.paintCaret(p, ox, oy)
 }
 
+// hasQuote reports whether a leaf is inside a quotation.
+func hasQuote(conts []cont) bool {
+	for _, c := range conts {
+		if c.kind == cQuote {
+			return true
+		}
+	}
+	return false
+}
+
 // paintUnit draws a leaf or a cell: its panel, what is found and selected
 // in it, its text and its objects.
 func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
@@ -86,10 +112,12 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 	x, y := ox+u.x, oy+u.y
 	box := ui.Rect{X: x, Y: y, W: u.w, H: u.h}
 	if v.panel {
-		p.Fill(box, e.lk.panel, 6)
+		p.Fill(box, uiColor(v.style.Background), v.style.Radius)
 	}
 	if u.kind == kRule && v.layout == nil {
-		p.Fill(ui.Rect{X: x, Y: y + u.h/2 - 0.75, W: u.w, H: 1.5}, e.lk.border.Alpha(1), 0)
+		if b := v.style.Border[0]; b.Width > 0 {
+			p.Fill(ui.Rect{X: x, Y: y + u.h/2 - b.Width/2, W: u.w, H: b.Width}, uiColor(b.Color), 0)
+		}
 	}
 	if v.layout != nil {
 		lx, ly := x+v.tx, y+v.ty
@@ -118,11 +146,12 @@ func (e *Editor) paintUnit(p *ui.Painter, u *leaf, ox, oy float32, a, z int) {
 		e.paintObject(p, v.block, ui.Rect{X: x + v.bx, Y: y + v.by, W: v.block.w, H: v.block.h})
 	}
 	if v.diagram != nil {
-		pad := e.lk.size * codePadY
+		pad := v.style.Padding.Top
 		v.diagram.Draw(p, ui.Rect{X: x, Y: y + pad, W: u.w, H: u.h - 2*pad}, p.Theme())
 	}
-	if v.label != "" && !v.reveal && v.panel {
-		sp := ui.Span{Text: v.label, Size: e.lk.size * 0.7, Color: e.lk.muted.Alpha(0.75)}
+	if v.label != "" && !v.reveal && v.panel && v.info != nil {
+		sp := e.styleSpan(v.info)
+		sp.Text = v.label
 		w, _ := p.MeasureText(0, sp)
 		p.RichText(x+u.w-w-e.lk.size*0.6, y+e.lk.size*0.35, 0, sp)
 	}
@@ -220,60 +249,93 @@ func (e *Editor) paintMarkers(p *ui.Painter, l *leaf, ox, oy float32) {
 			baseline = l.y + v.ty + lines[0].Baseline
 		}
 	}
-	for _, k := range l.firstOf {
-		c := l.conts[k]
-		x0 := e.colX + e.indentOf(l.conts[:k])
-		w := e.indentOf(l.conts[k : k+1])
-		switch c.kind {
-		case cItem:
-			e.paintItemMarker(p, c, ox+x0, oy+baseline, w)
-		case cFootnote:
-			sp := ui.Span{Text: "[^" + c.label + "]", Size: e.lk.size * 0.75, Color: e.lk.accent}
-			fm := ui.Font{Family: e.lk.font, Size: sp.Size}.Metrics()
-			p.RichText(ox+x0, oy+baseline-fm.Ascent, w, sp)
+	x := e.colX
+	st := e.styledLeaf(l)
+	for k, c := range l.conts {
+		cs := st.contStyle[k]
+		if slices.Contains(l.firstOf, k) {
+			switch c.kind {
+			case cItem:
+				e.paintItemMarker(p, c, st.conts[k], ox+x, oy+baseline, cs.Padding.Left)
+			case cFootnote:
+				sp := e.styleSpan(st.conts[k].Pseudo("label", 0))
+				sp.Text = "[^" + c.label + "]"
+				fm := ui.Font{Family: sp.Font, Size: sp.Size}.Metrics()
+				p.RichText(ox+x, oy+baseline-fm.Ascent, cs.Padding.Left, sp)
+			}
 		}
+		x += cs.Padding.Left
 	}
 }
 
 // paintItemMarker draws an item's marker in the column from x, w wide, on
 // the baseline.
-func (e *Editor) paintItemMarker(p *ui.Painter, c cont, x, baseline, w float32) {
-	s := e.lk.size
+func (e *Editor) paintItemMarker(p *ui.Painter, c cont, item *theme.Node, x, baseline, w float32) {
+	s := item.Style().FontSize
 	if c.task != parser.NoTask {
-		box := s * 0.95
-		r := ui.Rect{X: x + w - box - s*0.45, Y: baseline - s*0.82, W: box, H: box}
+		cs := item.Pseudo("checkbox", 0)
+		box := cs.Width
+		if box <= 0 {
+			box = cs.Height
+		}
+		if box <= 0 {
+			box = s * 0.95
+		}
+		r := ui.Rect{X: x + w - box - cs.Margin.Right, Y: baseline - s*0.82, W: box, H: box}
 		if c.task == parser.Checked {
-			p.Fill(r, e.lk.accent, 3.5)
+			p.Fill(r, uiColor(cs.Background), cs.Radius)
+			col := uiColor(cs.Color)
+			if col.A == 0 {
+				col = ui.RGB(255, 255, 255)
+			}
 			path := ui.Path{}
 			path.MoveTo(r.X+r.W*0.24, r.Y+r.H*0.52)
 			path.LineTo(r.X+r.W*0.43, r.Y+r.H*0.7)
 			path.LineTo(r.X+r.W*0.77, r.Y+r.H*0.32)
-			p.StrokePath(&path, 1.8, ui.RGB(255, 255, 255))
-		} else {
-			p.Stroke(r, e.lk.muted.Alpha(0.8), 3.5, 1.3)
+			p.StrokePath(&path, 1.8, col)
+		} else if b := cs.Border[0]; b.Width > 0 {
+			p.Stroke(r, uiColor(b.Color), cs.Radius, b.Width)
 		}
 		return
 	}
+	marker := item.Pseudo("marker", 0)
 	text := "•"
-	size := s
+	size := marker.FontSize
 	if c.ordered {
 		text = strconv.Itoa(c.num) + string(c.marker)
 	} else {
-		switch c.depth % 3 {
-		case 1:
+		list := item.Parent().Style().ListStyle
+		kind := list.Kind
+		if kind == theme.ListAuto {
+			switch c.depth % 3 {
+			case 1:
+				kind = theme.ListCircle
+			case 2:
+				kind = theme.ListSquare
+			default:
+				kind = theme.ListDisc
+			}
+		}
+		switch kind {
+		case theme.ListNone:
+			return
+		case theme.ListCircle:
 			text = "◦"
-		case 2:
+		case theme.ListSquare:
 			text = "▪"
-			size = s * 0.8
+			size *= 0.8
+		case theme.ListString:
+			if list.Text != "" {
+				text = list.Text
+			}
 		}
 	}
-	sp := ui.Span{Text: text, Size: size, Color: e.lk.muted}
-	if c.ordered {
-		sp.Features = "tnum"
-	}
-	fm := ui.Font{Family: e.lk.font, Size: size}.Metrics()
+	sp := e.styleSpan(marker)
+	sp.Text = text
+	sp.Size = size
+	fm := ui.Font{Family: sp.Font, Size: size}.Metrics()
 	tw, _ := p.MeasureText(0, sp)
-	p.RichText(x+w-tw-s*0.45, baseline-fm.Ascent, 0, sp)
+	p.RichText(x+w-tw-marker.Margin.Right, baseline-fm.Ascent, 0, sp)
 }
 
 // paintTable draws a table's grid and its header row's fill.
@@ -284,20 +346,22 @@ func (e *Editor) paintTable(p *ui.Painter, l *leaf, ox, oy float32, t *ui.Theme)
 	}
 	x, y := ox+l.x, oy+l.y
 	if len(g.rowY) > 1 {
-		p.Fill(ui.Rect{X: x, Y: y, W: g.w, H: g.rowY[1]}, e.lk.panel, 0)
+		if cs := e.tableRowNode(l, 0).Style(); cs.Background.A != 0 {
+			p.Fill(ui.Rect{X: x, Y: y, W: g.w, H: g.rowY[1]}, uiColor(cs.Background), 0)
+		}
 	}
-	line := e.lk.border.Alpha(1)
-	if !e.lk.dark {
-		line = ui.RGBA(0, 0, 0, 0.12)
-	} else {
-		line = ui.RGBA(255, 255, 255, 0.14)
+	cs := e.leafStyle(l)
+	line := uiColor(cs.Border[0].Color)
+	lw := cs.Border[0].Width
+	if lw <= 0 {
+		lw = 1
 	}
 	for _, ry := range g.rowY {
-		p.Fill(ui.Rect{X: x, Y: y + ry - 0.5, W: g.w, H: 1}, line, 0)
+		p.Fill(ui.Rect{X: x, Y: y + ry - lw/2, W: g.w, H: lw}, line, 0)
 	}
 	h := g.rowY[len(g.rowY)-1]
 	for _, cx := range g.colX {
-		p.Fill(ui.Rect{X: x + cx - 0.5, Y: y, W: 1, H: h}, line, 0)
+		p.Fill(ui.Rect{X: x + cx - lw/2, Y: y, W: lw, H: h}, line, 0)
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui/markdown/parser"
 
 	"github.com/CarlOpenLab/livemark/internal/mdoc"
+	"github.com/CarlOpenLab/livemark/theme"
 )
 
 // look is how the document looks, resolved from the window's theme and the
@@ -143,26 +144,6 @@ func (lk *look) span(st istyle, size float32) ui.Span {
 	return s
 }
 
-// headingSize returns the size of the text of a heading of level.
-func (lk *look) headingSize(level int) float32 { return mdoc.HeadingSize(level, lk.size) }
-
-func headingWeight(level int) int {
-	if level <= 2 {
-		return 700
-	}
-	return 650
-}
-
-// Spacing, in ems of the body text.
-const (
-	quoteIndent = 1.2
-	itemIndent  = 1.75
-	codePadX    = 1.0
-	codePadY    = 0.75
-	cellPadX    = 0.7
-	cellPadY    = 0.45
-)
-
 // leafView is a leaf as the editor shows it: its display, laid out, and
 // the boxes around it, relative to the leaf's box.
 type leafView struct {
@@ -191,7 +172,11 @@ type leafView struct {
 	font ui.Font
 	// diagram is a Mermaid diagram drawn instead of its code.
 	diagram *mdoc.Diagram
-	used    uint64
+	// style is the theme's computed style of the leaf's block, and info
+	// that of a code block's info string.
+	style *theme.Computed
+	info  *theme.Computed
+	used  uint64
 }
 
 // viewKey is what a leaf's view is made of: views of the same key are the
@@ -206,6 +191,7 @@ type viewKey struct {
 	composeAt int
 	text      string
 	look      lookKey
+	styleGen  uint64
 	assets    uint64
 	align     parser.Align
 }
@@ -217,6 +203,7 @@ const (
 	fFront
 	fQuote
 	fNatural
+	fFenced
 )
 
 // leafFlags returns the flags of a leaf's key.
@@ -260,14 +247,15 @@ func (e *Editor) view(l *leaf, width float32, header bool, align parser.Align) *
 // cache when it has it.
 func (e *Editor) viewWith(l *leaf, width float32, header bool, align parser.Align, reveal int) *leafView {
 	k := viewKey{
-		kind:   l.kind,
-		level:  l.level,
-		flags:  leafFlags(l, header),
-		width:  width,
-		reveal: reveal,
-		look:   e.lk.key(),
-		assets: e.assetGen.Load(),
-		align:  align,
+		kind:     l.kind,
+		level:    l.level,
+		flags:    leafFlags(l, header),
+		width:    width,
+		reveal:   reveal,
+		look:     e.lk.key(),
+		styleGen: e.styleGen,
+		assets:   e.assetGen.Load(),
+		align:    align,
 	}
 	at := -1
 	if reveal >= 0 {
@@ -319,15 +307,13 @@ func (e *Editor) newBuilder(l *leaf, at int, withCompose bool, size, width float
 	return b
 }
 
-// textFont returns the font of a text leaf.
+// textFont returns the font of a text leaf, from its theme style.
 func (e *Editor) textFont(l *leaf) ui.Font {
-	f := ui.Font{Family: e.lk.font, Size: e.lk.size, LineHeight: e.lk.lh}
-	if l.kind == kHeading && !l.pending {
-		f.Size = e.lk.headingSize(l.level)
-		f.Weight = headingWeight(l.level)
-		f.LineHeight = 1.35
+	if l.kind == kHeading && l.pending {
+		// A heading being typed is still text.
+		return e.styleFont(e.rootStyle())
 	}
-	return f
+	return e.styleFont(e.leafStyle(l))
 }
 
 // textView lays out a paragraph, a heading, a table cell or the phantom.
@@ -415,29 +401,28 @@ func aloneImage(ins []parser.Inline, src string) bool {
 	return img
 }
 
-// codeFont returns the font of code.
-func (e *Editor) codeFont() ui.Font {
-	return ui.Font{Family: e.lk.mono, Size: e.lk.size * 0.875, LineHeight: 1.6}
-}
-
 // codeView lays out a block of code: its lines, highlighted, in a panel,
 // with its fence's info string above them while the caret is there.
 func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *leafView {
-	f := e.codeFont()
-	padX, padY := e.lk.size*codePadX, e.lk.size*codePadY
-	inner := max(width-2*padX, 40)
+	cs := e.leafStyle(l)
+	f := e.styleFont(cs)
+	padL, padR, padT, padB := cs.Padding.Left, cs.Padding.Right, cs.Padding.Top, cs.Padding.Bottom
+	inner := max(width-padL-padR, 40)
 	b := e.newBuilder(l, at, withCompose, f.Size, inner)
 	caretIn := at >= 0
 	if l.whole {
-		padX, padY = 0, 0
+		padL, padR, padT, padB = 0, 0, 0, 0
 		inner = max(width, 40)
 		b.width = inner
 	}
-	v := &leafView{panel: !l.whole, tx: padX, ty: padY, label: l.lang}
+	v := &leafView{style: cs, panel: !l.whole, tx: padL, ty: padT, label: l.lang}
 	if l.whole {
 		v.label = ""
 	}
-	plain := ui.Span{Color: e.lk.text}
+	if l.fenced {
+		v.info = e.styleNode(l).Pseudo("info", 0)
+	}
+	plain := ui.Span{Color: uiColor(cs.Color)}
 	infoLine := l.fenced && caretIn && b.reveal >= l.infoStart && b.reveal <= l.infoEnd
 	if infoLine {
 		mark := ui.Span{Color: e.lk.marker}
@@ -488,11 +473,11 @@ func (e *Editor) codeView(l *leaf, width float32, at int, withCompose bool) *lea
 	v.layout, v.empty = shapeDisplay(&v.disp, f, ui.TextShape{Width: inner})
 	v.font = f
 	_, th := v.layout.Size()
-	v.h = th + 2*padY
+	v.h = th + padT + padB
 	if !caretIn && strings.EqualFold(l.lang, "mermaid") {
 		if d, ok := mdoc.ParseDiagram(e.codeText(l)); ok {
 			v.diagram = &d
-			v.h = d.Height(width) + 2*padY
+			v.h = d.Height(width) + padT + padB
 		}
 	}
 	return v
@@ -513,19 +498,19 @@ func (e *Editor) codeText(l *leaf) string {
 // mathView lays out a block of math: typeset, or its TeX above the
 // typeset formula while the caret is in it.
 func (e *Editor) mathView(l *leaf, width float32, at int, withCompose bool) *leafView {
+	cs := e.leafStyle(l)
 	caretIn := at >= 0
 	tex := e.codeText(l)
 	obj := e.mathBlockObject(tex, width)
 	if !caretIn {
-		v := &leafView{block: obj}
 		if obj == nil {
 			// Nothing to typeset, or TeX the typesetter cannot read: its
 			// source shows, in the panel of code.
-			return e.linesView(l, width, -1, false, true)
+			return e.linesViewState(l, width, -1, false, true, theme.Broken)
 		}
-		pad := e.lk.size * 0.5
-		v.bx, v.by = (width-obj.w)/2, pad
-		v.h = obj.h + 2*pad
+		v := &leafView{style: cs, block: obj}
+		v.bx, v.by = (width-obj.w)/2, cs.Padding.Top
+		v.h = obj.h + cs.Padding.Top + cs.Padding.Bottom
 		return v
 	}
 	v := e.linesView(l, width, at, withCompose, true)
@@ -545,7 +530,8 @@ func (e *Editor) htmlView(l *leaf, width float32, at int, withCompose bool) *lea
 	html := e.codeText(l)
 	if obj := e.htmlImageObject(html, width); obj != nil {
 		if at < 0 {
-			return &leafView{block: obj, bx: (width - obj.w) / 2, h: obj.h}
+			cs := e.leafStyle(l)
+			return &leafView{style: cs, block: obj, bx: (width - obj.w) / 2, h: obj.h}
 		}
 		v := e.linesView(l, width, at, withCompose, false)
 		gap := e.lk.size * 0.5
@@ -556,21 +542,21 @@ func (e *Editor) htmlView(l *leaf, width float32, at int, withCompose bool) *lea
 	return e.linesView(l, width, at, withCompose, false)
 }
 
-// linesView lays out a leaf's lines as they are, in the code font: in a
-// panel, or muted.
+// linesView lays out a leaf's lines as they are, in its block's font.
 func (e *Editor) linesView(l *leaf, width float32, at int, withCompose, panel bool) *leafView {
-	f := e.codeFont()
-	inner := width
-	v := &leafView{panel: panel}
-	if panel {
-		v.tx, v.ty = e.lk.size*codePadX, e.lk.size*codePadY
-		inner = max(width-2*v.tx, 40)
-	}
+	return e.linesViewState(l, width, at, withCompose, panel, 0)
+}
+
+// linesViewState is linesView with extra states of the block, as a
+// formula that could not be typeset is :broken.
+func (e *Editor) linesViewState(l *leaf, width float32, at int, withCompose, panel bool, states theme.States) *leafView {
+	cs := e.leafStyleState(l, states)
+	f := e.styleFont(cs)
+	padL, padR, padT, padB := cs.Padding.Left, cs.Padding.Right, cs.Padding.Top, cs.Padding.Bottom
+	inner := max(width-padL-padR, 40)
+	v := &leafView{style: cs, panel: panel, tx: padL, ty: padT}
 	b := e.newBuilder(l, at, withCompose, f.Size, inner)
-	sp := ui.Span{Color: e.lk.muted}
-	if panel {
-		sp.Color = e.lk.text
-	}
+	sp := ui.Span{Color: uiColor(cs.Color)}
 	for k, ln := range l.lines {
 		if k > 0 {
 			prev := l.lines[k-1]
@@ -584,22 +570,23 @@ func (e *Editor) linesView(l *leaf, width float32, at int, withCompose, panel bo
 	v.layout, v.empty = shapeDisplay(&v.disp, f, ui.TextShape{Width: inner})
 	v.font = f
 	_, th := v.layout.Size()
-	v.h = th + 2*v.ty
+	v.h = th + padT + padB
 	return v
 }
 
 // ruleView lays out a thematic break: a line, or its source while the
 // caret is at it.
 func (e *Editor) ruleView(l *leaf, width float32, at int, withCompose bool) *leafView {
+	cs := e.leafStyle(l)
 	if at < 0 {
-		return &leafView{h: e.lk.size * 1.2}
+		return &leafView{style: cs, h: cs.Height}
 	}
-	f := ui.Font{Family: e.lk.font, Size: e.lk.size, LineHeight: e.lk.lh}
+	f := e.styleFont(cs)
 	b := e.newBuilder(l, at, withCompose, f.Size, width)
 	b.spanRun(l.start, l.end, ui.Span{Color: e.lk.marker})
 	b.finish(l.end)
 	b.ensure(l.start)
-	v := &leafView{disp: b.display(), reveal: true}
+	v := &leafView{style: cs, disp: b.display(), reveal: true}
 	v.layout, v.empty = shapeDisplay(&v.disp, f, ui.TextShape{Width: width})
 	v.font = f
 	_, v.h = v.layout.Size()
@@ -609,38 +596,27 @@ func (e *Editor) ruleView(l *leaf, width float32, at int, withCompose bool) *lea
 // ---------------------------------------------------------------------------
 // The document
 
-// indentOf returns how far the containers of a leaf move it in.
+// indentOf returns how far the containers move a leaf in: their
+// padding-left.
 func (e *Editor) indentOf(conts []cont) float32 {
 	x := float32(0)
+	n := e.res.Root()
 	for _, c := range conts {
-		switch c.kind {
-		case cQuote:
-			x += e.lk.size * quoteIndent
-		default:
-			x += e.lk.size * itemIndent
-		}
+		n = appendContNode(n, c)
+		x += n.Style().Padding.Left
 	}
 	return x
 }
 
-// margins returns the room above and below a leaf.
+// margins returns the room above and below a leaf, from its theme style.
 func (e *Editor) margins(l *leaf) (top, bottom float32) {
-	s := e.lk.size
-	switch l.kind {
-	case kHeading:
-		if l.pending {
-			return s * 0.7, s * 0.7
-		}
-		tops := [...]float32{1.4, 1.2, 1.0, 0.9, 0.8, 0.8}
-		return s * tops[min(max(l.level, 1), 6)-1], s * 0.45
-	case kCode, kMath, kTable, kHTML:
-		return s * 0.8, s * 0.8
-	case kRule:
-		return s * 0.6, s * 0.6
-	case kRaw:
-		return s * 0.6, s * 0.6
+	if l.kind == kHeading && l.pending {
+		// A heading being typed is still text.
+		s := e.lk.size
+		return s * 0.7, s * 0.7
 	}
-	return s * 0.7, s * 0.7
+	c := e.leafStyle(l)
+	return c.Margin.Top, c.Margin.Bottom
 }
 
 // tightAfter reports whether a leaf follows the one before it closely: an
@@ -664,7 +640,10 @@ func (e *Editor) layoutDoc(x, width float32) {
 	var prev *leaf
 	prevBottom := float32(0)
 	for _, l := range e.leaves {
-		ind := e.indentOf(l.conts)
+		var ind float32
+		for _, cs := range e.styledLeaf(l).contStyle {
+			ind += cs.Padding.Left
+		}
 		l.x = x + ind
 		l.w = max(width-ind, 60)
 		top, bottom := e.margins(l)
@@ -695,12 +674,12 @@ func (e *Editor) layoutDoc(x, width float32) {
 func (e *Editor) layoutTable(l *leaf) {
 	t := l.tab
 	cols := t.cols()
-	padX, padY := e.lk.size*cellPadX, e.lk.size*cellPadY
 	natural := make([]float32, cols)
 	for r, row := range t.rows {
 		for c, cell := range row {
+			cs := e.leafStyle(cell)
 			v := e.view(cell, 0, r == 0, alignAt(t.align, c))
-			natural[c] = max(natural[c], v.natural+2*padX+2)
+			natural[c] = max(natural[c], v.natural+cs.Padding.Left+cs.Padding.Right+2)
 		}
 	}
 	total := float32(0)
@@ -725,23 +704,27 @@ func (e *Editor) layoutTable(l *leaf) {
 	g.rowY = make([]float32, len(t.rows)+1)
 	for r, row := range t.rows {
 		h := e.lk.size * e.lk.lh
+		padT, padB := float32(0), float32(0)
 		for c, cell := range row {
 			if c >= cols {
 				break
 			}
-			v := e.view(cell, max(widths[c]-2*padX, 10), r == 0, alignAt(t.align, c))
+			cs := e.leafStyle(cell)
+			v := e.view(cell, max(widths[c]-cs.Padding.Left-cs.Padding.Right, 10), r == 0, alignAt(t.align, c))
 			cell.view = v
 			h = max(h, v.h)
+			padT, padB = max(padT, cs.Padding.Top), max(padB, cs.Padding.Bottom)
 		}
-		h += 2 * padY
+		h += padT + padB
 		g.rowY[r+1] = g.rowY[r] + h
 		for c, cell := range row {
 			if c >= cols {
 				break
 			}
-			cell.x = l.x + g.colX[c] + padX
-			cell.y = l.y + g.rowY[r] + padY
-			cell.w = max(widths[c]-2*padX, 10)
+			cs := e.leafStyle(cell)
+			cell.x = l.x + g.colX[c] + cs.Padding.Left
+			cell.y = l.y + g.rowY[r] + cs.Padding.Top
+			cell.w = max(widths[c]-cs.Padding.Left-cs.Padding.Right, 10)
 			cell.h = cell.view.h
 		}
 	}

@@ -11,11 +11,15 @@ import (
 	"github.com/egoist/mygo/ui/markdown/parser"
 
 	"github.com/CarlOpenLab/livemark/internal/parse"
+	"github.com/CarlOpenLab/livemark/theme"
 )
 
 // Options configure an editor. The app sets them before building the
 // editor and changes them as its settings change.
 type Options struct {
+	// Theme is the document's theme, default.css when nil. Its styles
+	// decide every length and color the editor draws with.
+	Theme *theme.Theme
 	// FontSize is the body text's size in DIPs (16 when 0), LineHeight its
 	// line height as a multiple of it (1.75 when 0).
 	FontSize   float32
@@ -89,10 +93,20 @@ type Editor struct {
 
 	hist history
 
-	lk       look
-	views    map[viewKey]*leafView
-	frame    uint64
-	assetGen atomic.Uint64
+	lk          look
+	theme       *theme.Theme
+	res         *theme.Resolver
+	resCache    map[styleKey]*resolverGen
+	nextGen     uint64
+	styleGen    uint64
+	styleIDs    map[styleSig]uint32
+	styleSigs   []styleSig
+	contBuf     []byte
+	styledByGen map[uint64][]*leafStyled
+	fastByGen   map[uint64]map[uint64]*leafStyled
+	views       map[viewKey]*leafView
+	frame       uint64
+	assetGen    atomic.Uint64
 
 	// The element's size and where the column of text is in it.
 	elemW, viewH float32
@@ -162,15 +176,24 @@ type phantom struct {
 // New returns an editor of src.
 func New(src string, opts Options) *Editor {
 	e := &Editor{opts: opts, views: map[viewKey]*leafView{}, current: -1, cursor: ui.CursorText}
+	e.theme = opts.Theme
+	if e.theme == nil {
+		e.theme = theme.New()
+	}
 	// The window's theme comes with the first frame; until then, the light
 	// one, so that a document opened before it lays out.
 	e.setLook(ui.LightTheme())
+	e.ensureResolver(ui.LightTheme())
 	e.SetSource(src)
 	return e
 }
 
 // SetOptions changes the editor's options.
 func (e *Editor) SetOptions(opts Options) {
+	e.theme = opts.Theme
+	if e.theme == nil {
+		e.theme = theme.New()
+	}
 	if opts.Code != e.opts.Code {
 		e.rev++
 		e.parsed = 0

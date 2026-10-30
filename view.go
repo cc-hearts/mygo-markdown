@@ -16,6 +16,7 @@ type laid struct {
 	compose    string
 	colX, colW float32
 	look       lookKey
+	styleGen   uint64
 	assets     uint64
 	phantom    *phantom
 	focused    bool
@@ -27,16 +28,17 @@ type laid struct {
 func (e *Editor) layoutIfNeeded() {
 	e.sync()
 	k := laid{
-		rev:     e.rev,
-		caret:   e.caret,
-		reveal:  e.revealCaret(),
-		compose: e.compose,
-		colX:    e.colX,
-		colW:    e.colW,
-		look:    e.lk.key(),
-		assets:  e.assetGen.Load(),
-		phantom: e.phantom,
-		focused: e.focused,
+		rev:      e.rev,
+		caret:    e.caret,
+		reveal:   e.revealCaret(),
+		compose:  e.compose,
+		colX:     e.colX,
+		colW:     e.colW,
+		look:     e.lk.key(),
+		styleGen: e.styleGen,
+		assets:   e.assetGen.Load(),
+		phantom:  e.phantom,
+		focused:  e.focused,
 	}
 	if k == e.laidKey && e.leavesLaid {
 		return
@@ -54,6 +56,7 @@ func (e *Editor) layoutIfNeeded() {
 func (e *Editor) View(c *ui.Context) ui.Element {
 	t := c.Theme()
 	e.setLook(t)
+	e.ensureResolver(t)
 	e.frame++
 	e.services = c.Services()
 	e.focused = e.handle.Focused(c)

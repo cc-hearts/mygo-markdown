@@ -354,7 +354,7 @@ func TestCopyPaste(t *testing.T) {
 func TestTaskToggleByClick(t *testing.T) {
 	h := newHarness(t, "- [ ] todo")
 	l := h.e.leaves[0]
-	x := h.e.colX + h.e.lk.size*itemIndent - h.e.lk.size*0.9
+	x := h.e.colX + h.e.indentOf(l.conts) - h.e.lk.size*0.9
 	y := l.y + h.e.lk.size*0.8
 	h.tt.ClickAt(x, y+0)
 	h.frame()

@@ -7,7 +7,6 @@ import (
 
 	"github.com/CarlOpenLab/livemark/syntax"
 	"github.com/CarlOpenLab/livemark/theme"
-	"github.com/egoist/mygo/ui/markdown/parser"
 )
 
 // The consistency test compares what the editor's leaves say about a
@@ -69,31 +68,6 @@ func leafBlock(l *leaf) (theme.Element, bool) {
 		return theme.Element{Type: "link-def"}, true
 	}
 	return theme.Element{}, false
-}
-
-// rowCol returns where a table cell leaf is in its table.
-func (l *leaf) rowCol() (row, col int) {
-	for r, cells := range l.table.tab.rows {
-		for c, cell := range cells {
-			if cell == l {
-				return r, c
-			}
-		}
-	}
-	return -1, -1
-}
-
-// alignName returns the name of a table column's alignment.
-func alignName(a parser.Align) string {
-	switch a {
-	case parser.AlignLeft:
-		return "left"
-	case parser.AlignCenter:
-		return "center"
-	case parser.AlignRight:
-		return "right"
-	}
-	return ""
 }
 
 // leafCovers reports whether the editor lays out the offset in the leaf,

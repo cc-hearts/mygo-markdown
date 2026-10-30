@@ -102,6 +102,8 @@ type leaf struct {
 	// their markers beside it.
 	conts   []cont
 	firstOf []int
+	// lastOf the indices of those whose last leaf this is.
+	lastOf []int
 	// lines are a code, math, HTML or raw leaf's.
 	lines []line
 	// A fenced code block's info string, from infoStart to infoEnd on its
@@ -131,6 +133,13 @@ type leaf struct {
 	view  *leafView
 	geom  *tableGeom
 	table *leaf
+	// styled is the leaf's theme path and style, of the resolver styleGen
+	// made, and styleRev whether its block shows its syntax.
+	styled   *leafStyled
+	styleGen uint64
+	styleRev bool
+	sigID    uint32
+	sigRev   bool
 }
 
 // isText reports whether the leaf is edited as text with inline syntax.
@@ -144,6 +153,31 @@ func (l *leaf) innerItem() (cont, bool) {
 		}
 	}
 	return cont{}, false
+}
+
+// rowCol returns where a table cell leaf is in its table.
+func (l *leaf) rowCol() (row, col int) {
+	for r, cells := range l.table.tab.rows {
+		for c, cell := range cells {
+			if cell == l {
+				return r, c
+			}
+		}
+	}
+	return -1, -1
+}
+
+// alignName returns the name of a table column's alignment.
+func alignName(a parser.Align) string {
+	switch a {
+	case parser.AlignLeft:
+		return "left"
+	case parser.AlignCenter:
+		return "center"
+	case parser.AlignRight:
+		return "right"
+	}
+	return ""
 }
 
 // opensItem reports whether the leaf is the first of its innermost item.
@@ -221,6 +255,7 @@ func buildLeaves(src string, d *parser.Document, fm int) []*leaf {
 					out = append(out, emptyLeaf(src, b, conts, cont{kind: cQuote, id: c, start: b.Start}))
 				}
 				markFirst(out[first:], len(conts))
+				markLast(out[first:], len(conts))
 			case parser.List:
 				n := 0
 				for it := range d.Children(c) {
@@ -239,6 +274,7 @@ func buildLeaves(src string, d *parser.Document, fm int) []*leaf {
 						out = append(out, emptyItemLeaf(src, ib, conts, ct))
 					}
 					markFirst(out[first:], len(conts))
+					markLast(out[first:], len(conts))
 					n++
 				}
 			case parser.FootnoteDefinition:
@@ -249,6 +285,7 @@ func buildLeaves(src string, d *parser.Document, fm int) []*leaf {
 					out = append(out, emptyLeaf(src, b, conts, ct))
 				}
 				markFirst(out[first:], len(conts))
+				markLast(out[first:], len(conts))
 			case parser.Paragraph:
 				out = append(out, &leaf{kind: kPara, id: c, start: b.Start, end: paraEnd(src, b.End),
 					lineStart: lineStartAt(src, b.Start), syntaxStart: b.Start, conts: slices.Clone(conts)})
@@ -287,6 +324,13 @@ func appendCont(conts []cont, c cont) []cont {
 func markFirst(leaves []*leaf, depth int) {
 	if len(leaves) > 0 {
 		leaves[0].firstOf = append(leaves[0].firstOf, depth)
+	}
+}
+
+// markLast records that the last of leaves closes the container at depth.
+func markLast(leaves []*leaf, depth int) {
+	if len(leaves) > 0 {
+		leaves[len(leaves)-1].lastOf = append(leaves[len(leaves)-1].lastOf, depth)
 	}
 }
 
