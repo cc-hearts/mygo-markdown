@@ -55,7 +55,7 @@ func (e *Editor) mathBlockObject(tex string, width float32) *object {
 // line of its own: a paragraph of just an image.
 func (e *Editor) imageObject(dest, alt string, width float32, alone bool) *object {
 	bmp := mdoc.LoadImage(dest, e.opts.BaseDir, e.assetLoaded)
-	obj := &object{bmp: bmp, alt: alt, block: alone}
+	obj := &object{bmp: bmp, src: dest, alt: alt, block: alone}
 	if bmp == nil {
 		obj.w = min(max(width, 80), 260)
 		obj.h = e.baseSize() * 2.4

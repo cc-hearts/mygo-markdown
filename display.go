@@ -45,7 +45,9 @@ type piece struct {
 // gives its object replacement character.
 type object struct {
 	bmp *ui.Bitmap
-	// alt is drawn in a placeholder while bmp is nil, in style.
+	// src is what the image was loaded from; alt is drawn in a
+	// placeholder while bmp is nil, in style, or its file's name.
+	src   string
 	alt   string
 	style *theme.Computed
 	// w, h and descent are the box's size, in DIPs.

@@ -3,6 +3,7 @@ package livemark
 import (
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -235,15 +236,39 @@ func (e *Editor) paintObject(p *ui.Painter, o *object, r ui.Rect) {
 	if b := cs.Border[0]; b.Width > 0 {
 		p.Stroke(r, uiColor(b.Color), cs.Radius, b.Width)
 	}
-	label := "🖼 " + o.alt
-	if o.alt == "" {
-		label = "🖼 图片"
-	}
+	label := imageLabel(o)
 	sp := ui.Span{Text: label, Font: e.pickFont(cs.FontFamily), Size: cs.FontSize, Color: uiColor(cs.Color)}
 	w, h := p.MeasureText(r.W-16, sp)
 	p.Clip(r, cs.Radius, func() {
 		p.RichText(r.X+max((r.W-w)/2, 8), r.Y+(r.H-h)/2, r.W-16, sp)
 	})
+}
+
+// imageLabel returns what an image not loaded shows: its alt text, or
+// the name of its file.
+func imageLabel(o *object) string {
+	if o.alt != "" {
+		return "🖼 " + o.alt
+	}
+	if f := fileName(o.src); f != "" {
+		return "🖼 " + f
+	}
+	return "🖼 图片"
+}
+
+// fileName returns the name of the file a source names, without its
+// directory or its query, and nothing for a source inline, as data: is.
+func fileName(src string) string {
+	if src == "" || strings.HasPrefix(strings.ToLower(src), "data:") {
+		return ""
+	}
+	if i := strings.IndexAny(src, "?#"); i >= 0 {
+		src = src[:i]
+	}
+	if i := strings.LastIndexAny(src, `/\`); i >= 0 {
+		src = src[i+1:]
+	}
+	return src
 }
 
 // paintMarkers draws the markers of the items a leaf opens: bullets,
